@@ -1,0 +1,30 @@
+# Written before the evaluation corpus was collected, and not tuned against it.
+# A threshold chosen after looking at the cases it is scored on would make the
+# published confusion matrix a description of the tuning, not of the method.
+benchmark = "matmul"
+baseline_window = 20
+min_baseline_runs = 5
+min_candidate_runs = 3
+confidence = 0.95
+n_boot = 2000
+max_baseline_noise = 0.05
+
+[[metrics]]
+metric = "iteration_latency"
+statistic = "median"
+threshold = 0.03
+role = "critical"
+
+[[metrics]]
+metric = "iteration_latency"
+statistic = "p95"
+threshold = 0.05
+role = "critical"
+# A p95 over thirty samples per run moves more between runs than a median.
+max_baseline_noise = 0.10
+
+[[metrics]]
+metric = "max_rss"
+statistic = "median"
+threshold = 0.05
+role = "guardrail"
