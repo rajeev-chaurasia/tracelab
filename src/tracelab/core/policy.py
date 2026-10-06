@@ -40,7 +40,9 @@ class MetricPolicy(BaseModel):
 
     metric: str
     statistic: str
-    higher_is_better: bool = False
+    # Direction is not configured here. It comes from the metric declaration
+    # in the run's spec, so a policy cannot disagree with the benchmark about
+    # which way is better.
     threshold: float = Field(gt=0)
     mode: Mode = Mode.RELATIVE
     role: MetricClass = MetricClass.CRITICAL
@@ -65,7 +67,8 @@ class JitterPolicy(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     source: str
-    period_ms: float = Field(gt=0)
+    # In the source metric's own unit, which the contract fixes per metric.
+    period: float = Field(gt=0)
     # An interval longer than period * (1 + tolerance) is a missed deadline.
     tolerance: float = Field(ge=0)
 
@@ -74,7 +77,6 @@ class BenchmarkPolicy(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     benchmark: str
-    baseline_branch: str = "main"
     baseline_window: int = Field(default=20, ge=1)
     min_baseline_runs: int = Field(default=5, ge=2)
     # One candidate run cannot show its own run-to-run spread, so its interval

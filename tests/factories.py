@@ -2,53 +2,72 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from tracelab.core.schema import EnvironmentManifest, RunResult, RunStatus, Series
+from tracelab.core.run import Rig, Run, Series, comparison_key
 
 EPOCH = datetime(2026, 9, 1, tzinfo=UTC)
+CANDIDATE = "f" * 40
+# Every history revision a test builds is on the baseline branch unless the
+# test says otherwise.
+KNOWN_GOOD = frozenset(f"{i:040x}" for i in range(1000))
+
+# The shape benchgrid's internal/spec writes, not a simplification of it.
+SPEC: dict[str, Any] = {
+    "benchmark": "matmul",
+    "revision": "0" * 40,
+    "command": ["bench/matmul", "--size", "256"],
+    "warmups": 3,
+    "repetitions": 30,
+    "timeout_seconds": 120,
+    "requirements": {"arch": "arm64", "hardware_class": "cpu-arm64", "allow_emulated": False},
+    "environment": {},
+    "metrics": [{"name": "latency", "unit": "ns", "direction": "lower_is_better"}],
+    "artifacts": {"binary_sha256": "b" * 64},
+}
+KEY = comparison_key(SPEC)
 
 
-def environment(**overrides: Any) -> EnvironmentManifest:
+def rig(**overrides: Any) -> Rig:
     fields: dict[str, Any] = {
+        "rig_id": "rig-01",
         "hardware_class": "cpu-arm64",
-        "machine_id": "rig-01",
+        "arch": "arm64",
+        "emulated": False,
         "cpu_model": "test-cpu",
-        "ram_gb": 16.0,
-        "kernel": "test-kernel-1",
-        "compiler": "cpython-3.13",
+        "gpu_model": "",
+        "kernel": "25.0.0",
+        "driver_version": "",
+        "firmware": "",
+        "governor": "performance",
     }
     fields.update(overrides)
-    return EnvironmentManifest(**fields)
+    return Rig(**fields)
 
 
 def run(
     index: int = 0,
     *,
     metrics: dict[str, list[float]] | None = None,
-    unit: str = "ms",
-    env: EnvironmentManifest | None = None,
+    higher_is_better: frozenset[str] = frozenset(),
+    unit: str = "ns",
     **overrides: Any,
-) -> RunResult:
-    fields: dict[str, Any] = {
-        "run_id": f"run-{index:04d}",
-        "experiment_id": f"exp-{index:04d}",
-        "benchmark": "matmul",
-        "scenario": "n256",
-        "git_sha": "a" * 40,
-        "build_id": "build-1",
-        "branch": "main",
-        "config_sha256": "c" * 64,
-        "workload_sha256": "w" * 64,
-        "started_at": EPOCH + timedelta(minutes=index),
-        "status": RunStatus.SUCCEEDED,
-        "healthy": True,
-        "environment": env or environment(),
-        "metrics": {
-            name: Series(unit=unit, values=values)
-            for name, values in (metrics or {"latency_ms": [10.0, 11.0, 12.0]}).items()
+) -> Run:
+    built = Run(
+        run_id=f"exp-{index:04d}",
+        attempt=1,
+        benchmark="matmul",
+        revision=f"{index:040x}",
+        comparison_key=KEY,
+        started_at=EPOCH + timedelta(minutes=index),
+        status="SUCCEEDED",
+        status_reason="",
+        rig=rig(),
+        metrics={
+            name: Series(unit=unit, higher_is_better=name in higher_is_better, values=tuple(v))
+            for name, v in (metrics or {"latency": [10.0, 11.0, 12.0]}).items()
         },
-    }
-    fields.update(overrides)
-    return RunResult(**fields)
+    )
+    return replace(built, **overrides)

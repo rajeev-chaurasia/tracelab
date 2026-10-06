@@ -8,15 +8,16 @@ that no path can reach REGRESSION without first passing them.
 from __future__ import annotations
 
 from collections import Counter
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 
 import numpy as np
 
 from . import jitter, stats
 from .baseline import Selection
-from .compat import mismatches
+from .compat import blocking, mismatches
 from .policy import BenchmarkPolicy, MetricPolicy, Verdict, classify, rollup
-from .schema import RunResult
+from .run import Run
 from .stats import Estimate, Mode, Statistic
 
 
@@ -40,9 +41,7 @@ class Comparison:
     drift: list[str] = field(default_factory=list)
 
 
-def _stop(
-    verdict: Verdict, reason: str, candidates: list[RunResult], selection: Selection
-) -> Comparison:
+def _stop(verdict: Verdict, reason: str, candidates: list[Run], selection: Selection) -> Comparison:
     return Comparison(
         verdict=verdict,
         reason=reason,
@@ -55,19 +54,22 @@ def _stop(
 def _metric(
     policy: MetricPolicy,
     bench: BenchmarkPolicy,
-    baseline: list[RunResult],
-    candidates: list[RunResult],
+    baseline: list[Run],
+    candidates: list[Run],
     rng: np.random.Generator,
     pool: bool,
 ) -> MetricResult:
-    missing = sum(policy.metric not in r.metrics for r in [*baseline, *candidates])
+    missing = sum(
+        policy.metric not in r.metrics or not r.metrics[policy.metric].values
+        for r in [*baseline, *candidates]
+    )
     if missing:
         return MetricResult(
             policy, Verdict.INCONCLUSIVE, f"missing from {missing} of the compared runs"
         )
 
-    base = [r.metrics[policy.metric].values for r in baseline]
-    cand = [r.metrics[policy.metric].values for r in candidates]
+    base: Sequence[Sequence[float]] = [r.metrics[policy.metric].values for r in baseline]
+    cand: Sequence[Sequence[float]] = [r.metrics[policy.metric].values for r in candidates]
     statistic = Statistic.parse(policy.statistic)
 
     noise: float | None = None
@@ -92,7 +94,7 @@ def _metric(
             base,
             cand,
             statistic,
-            higher_is_better=policy.higher_is_better,
+            higher_is_better=candidates[0].metrics[policy.metric].higher_is_better,
             mode=policy.mode,
             confidence=bench.confidence,
             n_boot=bench.n_boot,
@@ -113,7 +115,7 @@ def _metric(
 
 
 def compare(
-    candidates: list[RunResult],
+    candidates: list[Run],
     selection: Selection,
     policy: BenchmarkPolicy,
     *,
@@ -124,22 +126,30 @@ def compare(
     if not candidates:
         raise ValueError("nothing to compare: no candidate runs")
     reference = candidates[0]
+    unfit = [r for r in candidates if r.status != "SUCCEEDED"]
+    if unfit:
+        # A FAILED or INVALID candidate measured nothing trustworthy. Calling
+        # that a regression would blame the code for the rig.
+        return _stop(
+            Verdict.INCONCLUSIVE,
+            f"candidate run {unfit[0].run_id} is {unfit[0].status}: {unfit[0].status_reason}",
+            candidates,
+            selection,
+        )
 
     for other in candidates[1:]:
-        blocking = [m for m in mismatches(reference, other) if m.disqualifying]
-        if blocking:
+        if (mismatch := blocking(reference, other)) is not None:
             return _stop(
                 Verdict.INCOMPARABLE,
-                f"candidate runs disagree with each other on {blocking[0]}",
+                f"candidate runs disagree with each other on {mismatch}",
                 candidates,
                 selection,
             )
     for run in selection.runs:
-        blocking = [m for m in mismatches(reference, run) if m.disqualifying]
-        if blocking:
+        if (mismatch := blocking(reference, run)) is not None:
             return _stop(
                 Verdict.INCOMPARABLE,
-                f"baseline run {run.run_id} differs on {blocking[0]}",
+                f"baseline run {run.run_id} differs on {mismatch}",
                 candidates,
                 selection,
             )

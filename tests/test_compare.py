@@ -1,3 +1,4 @@
+from dataclasses import replace
 from typing import Any
 
 import numpy as np
@@ -5,18 +6,18 @@ import numpy as np
 from tracelab.core.baseline import Selection
 from tracelab.core.compare import compare
 from tracelab.core.policy import BenchmarkPolicy, JitterPolicy, MetricClass, MetricPolicy, Verdict
-from tracelab.core.schema import RunResult
+from tracelab.core.run import Run, Series
 from tracelab.core.stats import Mode
 
-from .factories import environment, run
+from .factories import CANDIDATE, rig, run
 
 POLICY = BenchmarkPolicy(
     benchmark="matmul",
     n_boot=500,
     metrics=[
-        MetricPolicy(metric="latency_ms", statistic="median", threshold=0.03),
+        MetricPolicy(metric="latency", statistic="median", threshold=0.03),
         MetricPolicy(
-            metric="rss_mb", statistic="median", threshold=0.05, role=MetricClass.GUARDRAIL
+            metric="max_rss", statistic="median", threshold=0.05, role=MetricClass.GUARDRAIL
         ),
     ],
 )
@@ -24,7 +25,7 @@ POLICY = BenchmarkPolicy(
 
 def runs(
     start: int, count: int, *, level: float, drift: float, seed: int, **overrides: Any
-) -> list[RunResult]:
+) -> list[Run]:
     rng = np.random.default_rng(seed)
     out = []
     for i in range(count):
@@ -33,8 +34,8 @@ def runs(
             run(
                 start + i,
                 metrics={
-                    "latency_ms": list(center * (1 + rng.normal(0, 0.01, 30))),
-                    "rss_mb": [100.0 + rng.normal(0, 0.2)],
+                    "latency": list(center * (1 + rng.normal(0, 0.01, 30))),
+                    "max_rss": [100.0 + rng.normal(0, 0.2)],
                 },
                 **overrides,
             )
@@ -42,8 +43,8 @@ def runs(
     return out
 
 
-def candidates(level: float, drift: float = 0.01, count: int = 3, **kw: Any) -> list[RunResult]:
-    return runs(100, count, level=level, drift=drift, seed=7, git_sha="b" * 40, **kw)
+def candidates(level: float, drift: float = 0.01, count: int = 3, **kw: Any) -> list[Run]:
+    return runs(100, count, level=level, drift=drift, seed=7, revision=CANDIDATE, **kw)
 
 
 BASELINE = Selection(runs(0, 20, level=10.0, drift=0.01, seed=1))
@@ -63,11 +64,25 @@ def test_a_ten_percent_slowdown_is_a_regression_with_its_interval() -> None:
     latency = result.metrics[0]
     assert latency.estimate is not None
     assert 0.07 < latency.estimate.change < 0.13
-    assert result.reason.startswith("latency_ms.median: +")
+    assert result.reason.startswith("latency.median: +")
 
 
 def test_a_speedup_is_an_improvement() -> None:
     assert compare(candidates(9.0), BASELINE, POLICY).verdict is Verdict.IMPROVEMENT
+
+
+def test_direction_comes_from_the_declaration() -> None:
+    def throughput(rs: list[Run]) -> list[Run]:
+        return [
+            r.with_metrics(
+                {"latency": replace(r.metrics["latency"], unit="ops_per_s", higher_is_better=True)}
+            )
+            for r in rs
+        ]
+
+    lower = compare(throughput(candidates(9.0)), Selection(throughput(BASELINE.runs)), POLICY)
+
+    assert lower.verdict is Verdict.REGRESSION
 
 
 def test_a_noisy_baseline_is_inconclusive_even_with_a_real_slowdown() -> None:
@@ -79,24 +94,33 @@ def test_a_noisy_baseline_is_inconclusive_even_with_a_real_slowdown() -> None:
     assert "noise" in result.reason
 
 
-def test_a_driver_change_is_incomparable_not_a_regression() -> None:
-    upgraded = candidates(11.0, env=environment(driver_version="555"))
-
-    result = compare(upgraded, BASELINE, POLICY)
+def test_an_emulated_candidate_is_incomparable_not_a_regression() -> None:
+    result = compare(candidates(11.0, rig=rig(emulated=True)), BASELINE, POLICY)
 
     assert result.verdict is Verdict.INCOMPARABLE
-    assert "driver_version" in result.reason
+    assert "rig.emulated" in result.reason
     assert result.metrics == []
 
 
+def test_a_failed_candidate_is_inconclusive_not_a_regression() -> None:
+    failed = candidates(11.0)
+    failed[1] = replace(failed[1], status="FAILED", status_reason="timeout")
+
+    result = compare(failed, BASELINE, POLICY)
+
+    assert result.verdict is Verdict.INCONCLUSIVE
+    assert "FAILED: timeout" in result.reason
+
+
 def test_candidates_that_disagree_with_each_other_are_incomparable() -> None:
-    mixed = [*candidates(10.0, count=2), *candidates(10.0, count=1, scenario="n512")]
+    mixed = [*candidates(10.0, count=2), *candidates(10.0, count=1, comparison_key="0" * 64)]
 
     assert compare(mixed, BASELINE, POLICY).verdict is Verdict.INCOMPARABLE
 
 
 def test_no_compatible_baseline_is_incomparable() -> None:
-    empty = Selection(runs=[], excluded={"environment: driver_version differs": 20})  # type: ignore[arg-type]
+    empty = Selection(runs=[])
+    empty.excluded["environment: rig.hardware_class differs"] = 20
 
     result = compare(candidates(10.0), empty, POLICY)
 
@@ -114,7 +138,7 @@ def test_too_few_runs_on_either_side_is_inconclusive() -> None:
 
 
 def test_a_missing_metric_is_inconclusive_for_that_metric() -> None:
-    bare = [run(100 + i, git_sha="b" * 40, metrics={"latency_ms": [10.0] * 30}) for i in range(3)]
+    bare = [run(100 + i, revision=CANDIDATE, metrics={"latency": [10.0] * 30}) for i in range(3)]
 
     result = compare(bare, BASELINE, POLICY)
 
@@ -124,10 +148,9 @@ def test_a_missing_metric_is_inconclusive_for_that_metric() -> None:
 
 
 def test_guardrail_regression_warns_unless_guardrails_block() -> None:
-    heavy = candidates(10.0)
     heavy = [
-        r.with_metrics({"rss_mb": r.metrics["rss_mb"].model_copy(update={"values": [120.0]})})
-        for r in heavy
+        r.with_metrics({"max_rss": replace(r.metrics["max_rss"], values=(120.0,))})
+        for r in candidates(10.0)
     ]
 
     assert compare(heavy, BASELINE, POLICY).verdict is Verdict.WARNING
@@ -139,22 +162,19 @@ def test_jitter_regression_with_an_unchanged_mean() -> None:
     policy = BenchmarkPolicy(
         benchmark="matmul",
         n_boot=500,
-        jitter=JitterPolicy(source="loop.interval_ms", period_ms=20, tolerance=0.25),
+        jitter=JitterPolicy(source="tick", period=20.0, tolerance=0.25),
         metrics=[
-            MetricPolicy(metric="loop.interval_ms", statistic="mean", threshold=0.03),
+            MetricPolicy(metric="tick", statistic="mean", threshold=0.03),
             MetricPolicy(
-                metric="loop.interval_ms.deadline_miss",
-                statistic="mean",
-                threshold=0.01,
-                mode=Mode.ABSOLUTE,
+                metric="tick.deadline_miss", statistic="mean", threshold=0.01, mode=Mode.ABSOLUTE
             ),
         ],
     )
     steady = [20.0, 20.1, 19.9, 20.0] * 25
     # Same mean, but four of every hundred ticks now land late.
     spiky = [20.0] * 96 + [30.0, 10.0, 30.0, 10.0]
-    base = Selection([run(i, metrics={"loop.interval_ms": steady}) for i in range(10)])
-    cand = [run(100 + i, git_sha="b" * 40, metrics={"loop.interval_ms": spiky}) for i in range(3)]
+    base = Selection([run(i, metrics={"tick": steady}) for i in range(10)])
+    cand = [run(100 + i, revision=CANDIDATE, metrics={"tick": spiky}) for i in range(3)]
 
     result = compare(cand, base, policy)
 
@@ -171,10 +191,16 @@ def test_the_same_seed_gives_the_same_interval() -> None:
     assert a == b
 
 
-def test_kernel_drift_is_reported_without_blocking() -> None:
-    drifted = candidates(10.0, env=environment(kernel="test-kernel-2"))
-
-    result = compare(drifted, BASELINE, POLICY)
+def test_driver_drift_is_reported_without_blocking() -> None:
+    result = compare(candidates(10.0, rig=rig(driver_version="555")), BASELINE, POLICY)
 
     assert result.verdict is Verdict.PASS
-    assert result.drift == ["kernel: candidate 'test-kernel-2', baseline 'test-kernel-1'"]
+    assert result.drift == ["rig.driver_version: candidate '555', baseline ''"]
+
+
+def test_series_is_immutable_so_a_derived_metric_cannot_leak_back() -> None:
+    original = run()
+    derived = original.with_metrics({"extra": Series("ns", False, (1.0,))})
+
+    assert "extra" not in original.metrics
+    assert "extra" in derived.metrics

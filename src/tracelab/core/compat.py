@@ -1,25 +1,32 @@
 """Decide whether two runs measured the same thing on the same kind of machine.
 
-A comparison across a driver upgrade measures the driver. Reporting that as a
-regression in the code under test sends an engineer to bisect a change that
-did nothing, which costs more trust than a missed regression does. So a
-mismatch on a must-match field ends the comparison as INCOMPARABLE before any
-statistics run.
+The must-match set is the one the run artifact contract names: the measurement
+part of the spec, the hardware class, the architecture, and whether the rig
+was emulated. A mismatch there ends the comparison as INCOMPARABLE before any
+statistics run, because a regression reported across, say, an emulated and a
+physical rig sends an engineer to bisect a change that did nothing.
+
+Kernel, driver and governor are reported but do not disqualify, as the
+contract specifies. An experiment that needs a particular driver says so in its
+requirements, which are part of the spec, so a requirement change already
+changes the comparison key.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .schema import RunResult
+from .run import Run
 
-# Fields where a difference changes what is being measured.
-MUST_MATCH_RUN = ("benchmark", "scenario", "config_sha256", "workload_sha256")
-MUST_MATCH_ENV = ("hardware_class", "cpu_model", "gpu_model", "driver_version", "firmware")
-# Fields where a difference is worth reporting but not, by itself, disqualifying.
-# A kernel patch release changes the version string on every host in a fleet at
-# once; refusing every comparison for a week after would be the gate failing.
-SHOULD_MATCH_ENV = ("kernel", "compiler", "container_image", "collector_versions")
+MUST_MATCH = ("comparison_key", "rig.hardware_class", "rig.arch", "rig.emulated")
+ANNOTATE = (
+    "rig.kernel",
+    "rig.driver_version",
+    "rig.governor",
+    "rig.cpu_model",
+    "rig.gpu_model",
+    "rig.firmware",
+)
 
 
 @dataclass(frozen=True)
@@ -33,19 +40,21 @@ class Mismatch:
         return f"{self.field}: candidate {self.candidate!r}, baseline {self.baseline!r}"
 
 
-def mismatches(candidate: RunResult, baseline: RunResult) -> list[Mismatch]:
-    found: list[Mismatch] = []
-    for name in MUST_MATCH_RUN:
-        a, b = getattr(candidate, name), getattr(baseline, name)
-        if a != b:
-            found.append(Mismatch(name, a, b, disqualifying=True))
-    for names, disqualifying in ((MUST_MATCH_ENV, True), (SHOULD_MATCH_ENV, False)):
-        for name in names:
-            a, b = getattr(candidate.environment, name), getattr(baseline.environment, name)
-            if a != b:
-                found.append(Mismatch(name, a, b, disqualifying=disqualifying))
-    return found
+def _get(run: Run, path: str) -> object:
+    value: object = run
+    for part in path.split("."):
+        value = getattr(value, part)
+    return value
 
 
-def comparable(candidate: RunResult, baseline: RunResult) -> bool:
-    return not any(m.disqualifying for m in mismatches(candidate, baseline))
+def mismatches(candidate: Run, baseline: Run) -> list[Mismatch]:
+    return [
+        Mismatch(path, a, b, disqualifying)
+        for names, disqualifying in ((MUST_MATCH, True), (ANNOTATE, False))
+        for path in names
+        if (a := _get(candidate, path)) != (b := _get(baseline, path))
+    ]
+
+
+def blocking(candidate: Run, baseline: Run) -> Mismatch | None:
+    return next((m for m in mismatches(candidate, baseline) if m.disqualifying), None)

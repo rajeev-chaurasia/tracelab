@@ -8,29 +8,26 @@ still be caught.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
-from itertools import pairwise
-
 from .policy import JitterPolicy
-from .schema import RunResult, Series
+from .run import Run, Series
 
 
-def intervals_ms(timestamps_ns: Sequence[int]) -> list[float]:
-    return [(b - a) / 1_000_000 for a, b in pairwise(timestamps_ns)]
-
-
-def derive(run: RunResult, policy: JitterPolicy) -> RunResult:
+def derive(run: Run, policy: JitterPolicy) -> Run:
     source = run.metrics.get(policy.source)
     if source is None:
         return run
-    limit = policy.period_ms * (1 + policy.tolerance)
+    limit = policy.period * (1 + policy.tolerance)
     return run.with_metrics(
         {
             f"{policy.source}.deadline_miss": Series(
-                unit="ratio", values=[1.0 if v > limit else 0.0 for v in source.values]
+                unit="ratio",
+                higher_is_better=False,
+                values=tuple(1.0 if v > limit else 0.0 for v in source.values),
             ),
             f"{policy.source}.deviation": Series(
-                unit=source.unit, values=[abs(v - policy.period_ms) for v in source.values]
+                unit=source.unit,
+                higher_is_better=False,
+                values=tuple(abs(v - policy.period) for v in source.values),
             ),
         }
     )
