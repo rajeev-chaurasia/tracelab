@@ -1,0 +1,283 @@
+{
+  "$defs": {
+    "Artifact": {
+      "additionalProperties": false,
+      "description": "A profiler trace, log or flamegraph kept in object storage, not in rows.",
+      "properties": {
+        "kind": {
+          "title": "Kind",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "uri": {
+          "title": "Uri",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "uri",
+        "sha256"
+      ],
+      "title": "Artifact",
+      "type": "object"
+    },
+    "EnvironmentManifest": {
+      "additionalProperties": false,
+      "properties": {
+        "collector_versions": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Collector Versions",
+          "type": "object"
+        },
+        "compiler": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Compiler"
+        },
+        "container_image": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Container Image"
+        },
+        "cpu_model": {
+          "title": "Cpu Model",
+          "type": "string"
+        },
+        "driver_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Driver Version"
+        },
+        "firmware": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Firmware"
+        },
+        "gpu_model": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Gpu Model"
+        },
+        "hardware_class": {
+          "title": "Hardware Class",
+          "type": "string"
+        },
+        "kernel": {
+          "title": "Kernel",
+          "type": "string"
+        },
+        "machine_id": {
+          "title": "Machine Id",
+          "type": "string"
+        },
+        "ram_gb": {
+          "title": "Ram Gb",
+          "type": "number"
+        },
+        "thermal_state": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Thermal State"
+        }
+      },
+      "required": [
+        "hardware_class",
+        "machine_id",
+        "cpu_model",
+        "ram_gb",
+        "kernel"
+      ],
+      "title": "EnvironmentManifest",
+      "type": "object"
+    },
+    "RunStatus": {
+      "enum": [
+        "succeeded",
+        "failed",
+        "timed_out"
+      ],
+      "title": "RunStatus",
+      "type": "string"
+    },
+    "Series": {
+      "additionalProperties": false,
+      "description": "Every raw observation of one metric in one run, never a summary of them.\n\nSummaries are computed at comparison time from these values. Storing a\nmedian instead would make the bootstrap impossible and the published\nnumbers impossible to recompute.",
+      "properties": {
+        "timestamps_ns": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timestamps Ns"
+        },
+        "unit": {
+          "title": "Unit",
+          "type": "string"
+        },
+        "values": {
+          "items": {
+            "type": "number"
+          },
+          "minItems": 1,
+          "title": "Values",
+          "type": "array"
+        }
+      },
+      "required": [
+        "unit",
+        "values"
+      ],
+      "title": "Series",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "artifacts": {
+      "items": {
+        "$ref": "#/$defs/Artifact"
+      },
+      "title": "Artifacts",
+      "type": "array"
+    },
+    "benchmark": {
+      "title": "Benchmark",
+      "type": "string"
+    },
+    "branch": {
+      "title": "Branch",
+      "type": "string"
+    },
+    "build_id": {
+      "title": "Build Id",
+      "type": "string"
+    },
+    "config_sha256": {
+      "title": "Config Sha256",
+      "type": "string"
+    },
+    "environment": {
+      "$ref": "#/$defs/EnvironmentManifest"
+    },
+    "experiment_id": {
+      "title": "Experiment Id",
+      "type": "string"
+    },
+    "git_sha": {
+      "title": "Git Sha",
+      "type": "string"
+    },
+    "healthy": {
+      "title": "Healthy",
+      "type": "boolean"
+    },
+    "metrics": {
+      "additionalProperties": {
+        "$ref": "#/$defs/Series"
+      },
+      "title": "Metrics",
+      "type": "object"
+    },
+    "run_id": {
+      "title": "Run Id",
+      "type": "string"
+    },
+    "scenario": {
+      "title": "Scenario",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "started_at": {
+      "format": "date-time",
+      "title": "Started At",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/RunStatus"
+    },
+    "workload_sha256": {
+      "title": "Workload Sha256",
+      "type": "string"
+    }
+  },
+  "required": [
+    "run_id",
+    "experiment_id",
+    "benchmark",
+    "scenario",
+    "git_sha",
+    "build_id",
+    "branch",
+    "config_sha256",
+    "workload_sha256",
+    "started_at",
+    "status",
+    "healthy",
+    "environment",
+    "metrics"
+  ],
+  "title": "RunResult",
+  "type": "object"
+}
