@@ -1,0 +1,7 @@
+{
+  "rule": "The run schema version is benchgrid.run/v1.",
+  "outcome": "rejected",
+  "attempt": 2,
+  "code": "run_schema_version",
+  "ignored": {}
+}

@@ -1,0 +1,7 @@
+{
+  "rule": "FAILED with an empty samples.jsonl: every summary is n 0 with nulls, never zeros.",
+  "outcome": "accepted",
+  "attempt": 2,
+  "code": null,
+  "ignored": {}
+}

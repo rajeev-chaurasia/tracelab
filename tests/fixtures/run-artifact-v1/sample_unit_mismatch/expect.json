@@ -1,0 +1,7 @@
+{
+  "rule": "Every sample's unit matches its declared unit.",
+  "outcome": "rejected",
+  "attempt": 2,
+  "code": "sample_unit_mismatch",
+  "ignored": {}
+}

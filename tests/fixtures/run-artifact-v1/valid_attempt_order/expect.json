@@ -1,0 +1,7 @@
+{
+  "rule": "attempt-10 outranks attempt-9 numerically; unsealed attempt-11 does not exist.",
+  "outcome": "accepted",
+  "attempt": 10,
+  "code": null,
+  "ignored": {}
+}

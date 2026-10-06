@@ -1,0 +1,7 @@
+{
+  "rule": "value is a JSON number.",
+  "outcome": "rejected",
+  "attempt": 2,
+  "code": "samples_invalid",
+  "ignored": {}
+}

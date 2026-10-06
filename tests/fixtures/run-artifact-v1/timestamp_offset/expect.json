@@ -1,0 +1,7 @@
+{
+  "rule": "Timestamps are UTC and end in Z.",
+  "outcome": "rejected",
+  "attempt": 2,
+  "code": "timestamp_not_utc",
+  "ignored": {}
+}

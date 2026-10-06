@@ -1,0 +1,7 @@
+{
+  "rule": "Percentiles are type 7 linear, not the nearest lower rank.",
+  "outcome": "rejected",
+  "attempt": 2,
+  "code": "summary_disagrees",
+  "ignored": {}
+}

@@ -1,0 +1,7 @@
+{
+  "rule": "Utilisation is a ratio in 0..1, never a percentage.",
+  "outcome": "rejected",
+  "attempt": 2,
+  "code": "preflight_out_of_range",
+  "ignored": {}
+}

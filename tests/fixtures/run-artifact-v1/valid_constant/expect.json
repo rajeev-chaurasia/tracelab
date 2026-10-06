@@ -1,0 +1,7 @@
+{
+  "rule": "Constant data: mad, stddev and cv are exactly 0.",
+  "outcome": "accepted",
+  "attempt": 2,
+  "code": null,
+  "ignored": {}
+}

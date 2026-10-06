@@ -1,0 +1,7 @@
+{
+  "rule": "A FAILED run carries a reason.",
+  "outcome": "rejected",
+  "attempt": 2,
+  "code": "status_reason",
+  "ignored": {}
+}

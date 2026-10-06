@@ -1,0 +1,7 @@
+{
+  "rule": "spec_sha256 covers the spec as it appears in run.json.",
+  "outcome": "rejected",
+  "attempt": 2,
+  "code": "spec_sha256_mismatch",
+  "ignored": {}
+}

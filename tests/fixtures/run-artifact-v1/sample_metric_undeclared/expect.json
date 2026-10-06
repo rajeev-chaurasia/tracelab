@@ -1,0 +1,7 @@
+{
+  "rule": "Every sample's metric is declared in the spec.",
+  "outcome": "rejected",
+  "attempt": 2,
+  "code": "sample_metric_undeclared",
+  "ignored": {}
+}

@@ -1,0 +1,7 @@
+{
+  "rule": "iteration is contiguous from 0 within each metric.",
+  "outcome": "rejected",
+  "attempt": 2,
+  "code": "iteration_not_contiguous",
+  "ignored": {}
+}

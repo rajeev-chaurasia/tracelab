@@ -1,0 +1,7 @@
+{
+  "rule": "The summary excludes warmups.",
+  "outcome": "rejected",
+  "attempt": 2,
+  "code": "summary_disagrees",
+  "ignored": {}
+}

@@ -1,0 +1,7 @@
+{
+  "rule": "Fields are exactly the contract's; a renamed field fails.",
+  "outcome": "rejected",
+  "attempt": 2,
+  "code": "run_json_invalid",
+  "ignored": {}
+}

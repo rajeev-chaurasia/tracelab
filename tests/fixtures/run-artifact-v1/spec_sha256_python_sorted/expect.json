@@ -1,0 +1,7 @@
+{
+  "rule": "spec_sha256 is over the JCS form, not json.dumps(sort_keys=True).",
+  "outcome": "rejected",
+  "attempt": 2,
+  "code": "spec_sha256_mismatch",
+  "ignored": {}
+}

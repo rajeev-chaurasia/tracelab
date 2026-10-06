@@ -1,0 +1,7 @@
+{
+  "rule": "The manifest schema version is benchgrid.manifest/v1.",
+  "outcome": "rejected",
+  "attempt": 2,
+  "code": "manifest_invalid",
+  "ignored": {}
+}

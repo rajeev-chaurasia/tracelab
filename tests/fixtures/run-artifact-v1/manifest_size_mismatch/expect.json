@@ -1,0 +1,7 @@
+{
+  "rule": "Every listed size must match.",
+  "outcome": "rejected",
+  "attempt": 2,
+  "code": "manifest_size_mismatch",
+  "ignored": {}
+}

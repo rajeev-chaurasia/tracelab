@@ -1,0 +1,6 @@
+{"metric": "iteration_latency", "iteration": 0, "warmup": true, "value": 2090140, "unit": "ns", "t_offset_ns": 0}
+{"metric": "max_rss", "iteration": 0, "warmup": true, "value": 52466639, "unit": "bytes", "t_offset_ns": 0}
+{"metric": "iteration_latency", "iteration": 1, "warmup": true, "value": 2151956, "unit": "ns", "t_offset_ns": 2105140}
+{"metric": "max_rss", "iteration": 1, "warmup": true, "value": 52454639, "unit": "bytes", "t_offset_ns": 2105140}
+{"metric": "iteration_latency", "iteration": 2, "warmup": true, "value": 2155993, "unit": "ns", "t_offset_ns": 4272096}
+{"metric": "max_rss", "iteration": 2, "warmup": true, "value": 52433011, "unit": "bytes", "t_offset_ns": 4272096}

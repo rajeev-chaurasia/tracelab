@@ -1,0 +1,7 @@
+{
+  "rule": "run_id and attempt in run.json match the path.",
+  "outcome": "rejected",
+  "attempt": 2,
+  "code": "path_mismatch",
+  "ignored": {}
+}

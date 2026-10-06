@@ -1,0 +1,7 @@
+{
+  "rule": "A run with no sealed attempt must not be read, listed or reported.",
+  "outcome": "absent",
+  "attempt": null,
+  "code": null,
+  "ignored": {}
+}

@@ -1,0 +1,7 @@
+{
+  "rule": "The unit vocabulary is closed; ms is not in it.",
+  "outcome": "rejected",
+  "attempt": 2,
+  "code": "unit_unknown",
+  "ignored": {}
+}

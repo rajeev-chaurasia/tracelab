@@ -1,0 +1,7 @@
+{
+  "rule": "Warmups only: the summary excludes warmups, so n is 0.",
+  "outcome": "accepted",
+  "attempt": 2,
+  "code": null,
+  "ignored": {}
+}

@@ -1,0 +1,7 @@
+{
+  "rule": "One measured sample: stddev and cv are null.",
+  "outcome": "accepted",
+  "attempt": 2,
+  "code": null,
+  "ignored": {}
+}

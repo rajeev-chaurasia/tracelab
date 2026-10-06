@@ -1,0 +1,9 @@
+{
+  "rule": "Attempt numbers are unpadded decimal.",
+  "outcome": "no_valid_attempt",
+  "attempt": null,
+  "code": null,
+  "ignored": {
+    "attempt-02": "attempt_dir_name"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "rule": "Every listed file must be present.",
+  "outcome": "rejected",
+  "attempt": 2,
+  "code": "manifest_missing_file",
+  "ignored": {}
+}

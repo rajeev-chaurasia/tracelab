@@ -1,0 +1,7 @@
+{
+  "rule": "emulated is a JSON boolean, not a string.",
+  "outcome": "rejected",
+  "attempt": 2,
+  "code": "run_json_invalid",
+  "ignored": {}
+}

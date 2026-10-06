@@ -1,0 +1,7 @@
+{
+  "rule": "Only the highest sealed attempt counts; a corrupt one is not replaced by an older one.",
+  "outcome": "rejected",
+  "attempt": 2,
+  "code": "manifest_digest_mismatch",
+  "ignored": {}
+}

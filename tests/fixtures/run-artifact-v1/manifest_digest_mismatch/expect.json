@@ -1,0 +1,7 @@
+{
+  "rule": "Every listed digest must match.",
+  "outcome": "rejected",
+  "attempt": 2,
+  "code": "manifest_digest_mismatch",
+  "ignored": {}
+}

@@ -1,0 +1,7 @@
+{
+  "rule": "The directory is named by attempt, never by fence.",
+  "outcome": "rejected",
+  "attempt": 109,
+  "code": "path_mismatch",
+  "ignored": {}
+}

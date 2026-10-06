@@ -1,0 +1,7 @@
+{
+  "rule": "direction is lower_is_better or higher_is_better.",
+  "outcome": "rejected",
+  "attempt": 2,
+  "code": "spec_metrics_invalid",
+  "ignored": {}
+}

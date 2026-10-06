@@ -1,0 +1,7 @@
+{
+  "rule": "An additional listed file in a subdirectory is allowed.",
+  "outcome": "accepted",
+  "attempt": 2,
+  "code": null,
+  "ignored": {}
+}

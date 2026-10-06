@@ -1,0 +1,7 @@
+{
+  "rule": "files is sorted by path.",
+  "outcome": "rejected",
+  "attempt": 2,
+  "code": "manifest_unsorted",
+  "ignored": {}
+}

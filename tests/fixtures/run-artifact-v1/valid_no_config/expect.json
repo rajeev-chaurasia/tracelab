@@ -1,0 +1,7 @@
+{
+  "rule": "An experiment without a config file has config_sha256 null.",
+  "outcome": "accepted",
+  "attempt": 2,
+  "code": null,
+  "ignored": {}
+}

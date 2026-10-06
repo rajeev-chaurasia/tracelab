@@ -1,0 +1,7 @@
+{
+  "rule": "Every present file must be listed.",
+  "outcome": "rejected",
+  "attempt": 2,
+  "code": "manifest_unlisted_file",
+  "ignored": {}
+}
