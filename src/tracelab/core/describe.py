@@ -17,7 +17,7 @@ FIELDS = ("mean", "median", "p90", "p95", "p99", "stddev", "mad", "cv")
 
 
 class Summary(BaseModel):
-    model_config = ConfigDict(extra="forbid", frozen=True)
+    model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
 
     unit: str
     n: int
