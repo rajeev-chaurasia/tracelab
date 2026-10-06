@@ -35,7 +35,7 @@ packages = ["src/tracelab"]
 
 [tool.ruff]
 line-length = 100
-src = ["src", "tests"]
+src = ["src", "tests", "evaluation"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
@@ -44,12 +44,12 @@ select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
 # script/ and tests/ are imported as packages from the repository root but are
 # neither installed nor under src, so isort would otherwise file them as third
 # party.
-known-first-party = ["tracelab", "script", "tests"]
+known-first-party = ["tracelab", "script", "tests", "evaluation"]
 
 [tool.mypy]
 strict = true
 plugins = ["pydantic.mypy"]
-files = ["src", "tests", "script"]
+files = ["src", "tests", "script", "evaluation"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

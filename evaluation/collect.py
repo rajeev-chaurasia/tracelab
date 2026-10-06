@@ -1,0 +1,191 @@
+"""Collect the evaluation corpus: real runs, written as sealed run artifacts.
+
+Each run is one fresh process of `evaluation.workload`, wrapped in the run
+artifact contract benchgrid writes, then read straight back through
+tracelab's own reader. A run the reader rejects stops collection, so the
+corpus cannot contain anything the production ingest path would refuse.
+
+The rig is this development machine, described as what it is. It is not a
+benchmark rig and nothing here claims otherwise: there is no governor control,
+no thermal gate and no isolation, which is exactly why its noise is useful.
+
+    uv run python -m evaluation.collect --runs 100
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+import platform
+import subprocess
+import sys
+import time
+from pathlib import Path
+from typing import Any
+
+from evaluation import workload
+from tracelab.core.canon import sha256_hex
+from tracelab.core.contract import validate_attempt
+from tracelab.core.describe import summarize
+
+STORE = Path("corpus/store")
+WORKLOAD = Path("evaluation/workload.py")
+
+
+def _sysctl(name: str) -> str:
+    return subprocess.run(
+        ["sysctl", "-n", name], capture_output=True, text=True, check=True
+    ).stdout.strip()
+
+
+def _stamp(ns: int) -> str:
+    seconds, fraction = divmod(ns, 1_000_000_000)
+    return time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(seconds)) + f".{fraction:09d}Z"
+
+
+def _preflight() -> dict[str, Any]:
+    # Only load average can be read without privileges here. The contract
+    # says a reading the rig cannot take is null, never zero.
+    return {
+        "load1": os.getloadavg()[0],
+        "cpu_util": None,
+        "mem_free": None,
+        "gpu_util": None,
+        "temp_c": None,
+    }
+
+
+RIG: dict[str, Any] = {
+    "rig_id": "dev-laptop",
+    "hardware_class": "laptop-arm64",
+    "arch": platform.machine(),
+    "os": sys.platform,
+    "kernel": platform.release(),
+    "cpu_model": _sysctl("machdep.cpu.brand_string") if sys.platform == "darwin" else "",
+    "cpu_cores": os.cpu_count() or 0,
+    "mem_bytes": int(_sysctl("hw.memsize")) if sys.platform == "darwin" else 0,
+    "gpu_vendor": "",
+    "gpu_model": "",
+    "gpu_memory_bytes": 0,
+    "driver_version": "",
+    "firmware": "",
+    "emulated": False,
+}
+
+METRICS = {
+    "matmul": [
+        {"name": "iteration_latency", "unit": "ns", "direction": "lower_is_better"},
+        {"name": "max_rss", "unit": "bytes", "direction": "lower_is_better"},
+    ],
+    "periodic": [{"name": "tick_interval", "unit": "ns", "direction": "lower_is_better"}],
+}
+SHAPE = {"matmul": workload.MATMUL, "periodic": workload.PERIODIC}
+
+
+def spec(benchmark: str, revision: str, binary_sha256: str) -> dict[str, Any]:
+    return {
+        "benchmark": benchmark,
+        "revision": revision,
+        "command": ["python", "-m", "evaluation.workload", benchmark],
+        "warmups": SHAPE[benchmark]["warmups"],
+        "repetitions": SHAPE[benchmark]["repetitions"],
+        "timeout_seconds": 60,
+        "requirements": {"arch": RIG["arch"], "hardware_class": RIG["hardware_class"]},
+        "environment": {},
+        "metrics": METRICS[benchmark],
+        "artifacts": {"binary_sha256": binary_sha256},
+    }
+
+
+def collect_one(benchmark: str, index: int, revision: str) -> Path:
+    binary_sha256 = hashlib.sha256(WORKLOAD.read_bytes()).hexdigest()
+    run_spec = spec(benchmark, revision, binary_sha256)
+    run_id = f"corpus-{benchmark}-{index:04d}"
+
+    before = _preflight()
+    lease = time.time_ns()
+    started = time.time_ns()
+    proc = subprocess.run(
+        [sys.executable, "-m", "evaluation.workload", benchmark],
+        capture_output=True,
+        timeout=run_spec["timeout_seconds"],
+    )
+    finished = time.time_ns()
+    after = _preflight()
+
+    samples = [json.loads(line) for line in proc.stdout.decode().splitlines()]
+    ok = proc.returncode == 0
+    summary = {
+        m["name"]: summarize(
+            m["unit"], [s["value"] for s in samples if s["metric"] == m["name"] and not s["warmup"]]
+        ).model_dump()
+        for m in METRICS[benchmark]
+    }
+    run = {
+        "schema_version": "benchgrid.run/v1",
+        "run_id": run_id,
+        "attempt": 1,
+        "fence": 0,
+        "status": "SUCCEEDED" if ok else "FAILED",
+        "status_reason": "" if ok else f"exit:{proc.returncode}",
+        "spec_sha256": sha256_hex(run_spec),
+        "spec": run_spec,
+        "rig": RIG,
+        "environment": {
+            "git_revision": revision,
+            "binary_sha256": binary_sha256,
+            "config_sha256": None,
+            "governor": "unmanaged",
+            "preflight_before": before,
+            "preflight_after": after,
+        },
+        "timing": {
+            "lease_acquired": _stamp(lease),
+            "started": _stamp(started),
+            "finished": _stamp(finished),
+        },
+        "summary": summary,
+    }
+
+    files = {
+        "run.json": (json.dumps(run, indent=2, sort_keys=True) + "\n").encode(),
+        "samples.jsonl": "".join(json.dumps(s, sort_keys=True) + "\n" for s in samples).encode(),
+    }
+    manifest = {
+        "schema_version": "benchgrid.manifest/v1",
+        "files": [
+            {"path": path, "sha256": hashlib.sha256(body).hexdigest(), "size": len(body)}
+            for path, body in sorted(files.items())
+        ],
+    }
+    files["manifest.json"] = (json.dumps(manifest, indent=2) + "\n").encode()
+    validate_attempt(run_id, 1, files)
+
+    attempt = STORE / "runs" / run_id / "attempt-1"
+    attempt.mkdir(parents=True, exist_ok=False)
+    # Sealed last, as the contract requires, so an interrupted collection
+    # leaves a directory the reader ignores rather than a partial run.
+    for path in ("run.json", "samples.jsonl", "manifest.json"):
+        (attempt / path).write_bytes(files[path])
+    return attempt
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--runs", type=int, default=100)
+    parser.add_argument("--start", type=int, default=0)
+    args = parser.parse_args()
+    revision = subprocess.run(
+        ["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True
+    ).stdout.strip()
+    for index in range(args.start, args.start + args.runs):
+        # Interleaved, so slow drift in the machine lands in both corpora alike.
+        for benchmark in ("matmul", "periodic"):
+            path = collect_one(benchmark, index, revision)
+            print(path, flush=True)
+
+
+if __name__ == "__main__":
+    main()
