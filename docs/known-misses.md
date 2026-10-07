@@ -17,6 +17,19 @@ still reads as a regression. The defence for that is on the rig: benchgrid's
 per-iteration environment gate marks such a run INVALID, and an INVALID run
 never reaches a comparison.
 
+v3 measured this rather than leaving it argued. A scheduled burst covering
+both batches of a window produced false regressions in every case kind it
+touched. An unscheduled shift in the machine, which raised the periodic loop's
+late ticks from about 0.3% to about 13% for nine minutes, produced seven
+more, two of them on windows the claim covered. See docs/evidence.md.
+
+## A sub-threshold change plus drift can clear the threshold
+
+A real 2% slowdown is below the 3% threshold and should not block. When the
+machine drifts by another percent between the baseline and both batches, the
+candidate measures past 3% twice and confirmation agrees with itself. v3 shows
+this five times. The change was real; the verdict overstated its size.
+
 ## Preflight readings are recorded and not used
 
 Every run artifact carries load, CPU and GPU utilisation, free memory and

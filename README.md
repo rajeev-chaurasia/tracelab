@@ -5,70 +5,93 @@ its central claim can be checked rather than taken on trust.
 
 > On real benchmark runs, TraceLab returns REGRESSION only when two batches of
 > a candidate, run apart, both move past a metric's practical threshold by more
-> than the run-to-run noise the baseline itself shows.
+> than the run-to-run noise the baseline itself shows. On a quiet machine that
+> held false regressions at zero. Under real contention it removed most of
+> them, not all: what is left comes from changes in the machine that outlast
+> the gap between the two batches.
 
 A performance gate that fires on noise gets muted within a month, and a muted
 gate is worse than none because people still believe it is watching. So the
 evidence here is mostly about the other side of the promise: what happens when
 the code did not change and the machine was simply noisy.
 
-## The measured result
+There are three published evaluations. Two of them are failures, and both are
+kept exactly as they came out.
 
-From `evidence/v2`, scored over 300 real runs of two workloads on an Apple M4
-laptop. Every case is a window of real runs, either untouched (same code) or
-with a known change injected into the candidate's samples. Five comparators
-judge the identical cases with the identical policy metrics.
+## v3: real contention on a schedule fixed in advance
 
-| comparator | false regressions | same-code false regressions | false improvements | regressions caught | inconclusive on a real regression |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| **tracelab** | **0** | **0 / 72** | 6 | 212 / 252 | 37 |
-| tracelab, one batch | 2 | 0 / 72 | 6 | 218 / 252 | 31 |
-| pooled bootstrap | 9 | 2 / 72 | 18 | 230 / 252 | 9 |
-| fixed 5%, twenty-run window | 88 | 3 / 72 | 80 | 219 / 252 | 0 |
-| fixed 5%, previous run | 110 | 4 / 72 | 61 | 211 / 252 | 0 |
+From `evidence/v3`: 546 real runs on an Apple M4 laptop, collected while the
+collector started one busy loop per core at fixed run indexes. Nine short
+bursts each hit exactly one window's first batch, with its baseline and its
+confirmation batch clean. One long burst covered both batches of one window.
+The schedule, the claim and the negative control were committed before the
+corpus was collected.
 
-The rows below TraceLab are the point. The same windows, judged by the gates
-people actually write, produce false regressions, including on same-code
-windows. That is what makes TraceLab's zero mean something, and the validator
-fails the build if the weaker comparators ever stop producing them.
+On the nine targeted windows, across every case kind where a regression would
+be wrong:
 
-Reproduce with `uv run python -m evaluation.score v2`, check with
-`uv run python -m script.validate_evidence`. Full tables per case kind are in
-[evidence/v2/summary.md](evidence/v2/summary.md).
+| comparator | false regressions | injected regressions caught |
+| --- | ---: | ---: |
+| **tracelab** | **3 / 153** | 53 / 63 |
+| tracelab, one batch | 31 / 153 | 61 / 63 |
+| pooled bootstrap | 42 / 153 | 63 / 63 |
+| fixed 5%, twenty-run window | 74 / 153 | 63 / 63 |
+| fixed 5%, previous run | 64 / 153 | 61 / 63 |
 
-## The first result failed, and is still published
+**The pre-registered claim was zero, and it failed by three.** Confirmation
+removed 28 of the 31 false regressions the bursts caused. Over the whole v3
+corpus it took TraceLab from 59 false regressions to 20, against 96 for the
+pooled bootstrap and over 300 for either fixed gate.
 
-v1 scored TraceLab at **ten false regressions**, five of them on same-code
-windows of a periodic loop. Each was traced to the same cause: the candidate
-runs in those windows were taken while the machine was busier than during the
-baseline, partly because this repository's own test suite was running. The
-statistics were right about the samples, and the samples cannot say why they
-moved.
+Each of the three is traced in [docs/evidence.md](docs/evidence.md). Two are
+one periodic-loop window, counted under two case kinds, whose baseline ran in
+a quiet stretch of the machine and whose two batches both ran after an
+unscheduled shift that raised the share of
+late ticks from about 0.3% to about 13% for the remaining nine minutes of
+collection. The third is a real 2% slowdown, below the 3% threshold, that the
+machine's drift pushed past it in both batches. Neither is something a second
+batch can see through, and both are entries in
+[docs/known-misses.md](docs/known-misses.md) that v3 measured rather than
+argued.
 
-[v1's evidence](evidence/v1/summary.md) is kept exactly as it came out, and
-the validator pins its failure at exactly ten so it can be neither edited away
-nor allowed to drift. The response, confirmation batches, is recorded in
-[ADR 0002](docs/adr/0002-confirmation-batches.md). The v2 policies were
-committed before the v2 corpus was collected, which the history shows.
+## v2: a quiet machine
 
-## How to read v2 honestly
+From `evidence/v2`: 300 real runs, nothing scheduled.
 
-- **v2 ran on a quieter machine than v1.** Run-to-run noise of the median was
-  0.22% against 1.40%, because nothing was started from this repository during
-  collection. The one-batch variant also raised no same-code false regression,
-  so v2 does not exercise the load burst that confirmation exists for. Its
-  measured contribution here is two sub-threshold over-calls removed. A test
-  of confirmation under deliberately scheduled contention is the next
-  experiment, not a result.
-- **The p95 interval is overconfident with three candidate runs.** Six times
-  TraceLab called a confident p95 improvement on code that did not change. An
-  improvement blocks nothing, but the same overconfidence pointed the other
-  way is a false regression, and confirmation is what stands between the two.
-  See [docs/known-misses.md](docs/known-misses.md).
-- **Caution costs catches.** The pooled bootstrap caught 18 more injected
-  regressions than TraceLab. It also raised nine false ones. TraceLab's
-  shortfall is mostly INCONCLUSIVE on changes confined to the tail of a noisy
-  sub-millisecond kernel.
+| comparator | false regressions | same-code false regressions | false improvements | regressions caught |
+| --- | ---: | ---: | ---: | ---: |
+| **tracelab** | **0** | **0 / 72** | 6 | 212 / 252 |
+| tracelab, one batch | 2 | 0 / 72 | 6 | 218 / 252 |
+| pooled bootstrap | 9 | 2 / 72 | 18 | 230 / 252 |
+| fixed 5%, twenty-run window | 88 | 3 / 72 | 80 | 219 / 252 |
+| fixed 5%, previous run | 110 | 4 / 72 | 61 | 211 / 252 |
+
+The machine was quiet, with run-to-run noise of the median at 0.22%, so v2
+shows the method holding when nothing goes wrong and says little about
+confirmation, which is why v3 exists. Six times TraceLab called a confident
+p95 improvement on unchanged code; that overconfidence with three candidate
+runs is a known miss.
+
+## v1: the first result, a failure
+
+From `evidence/v1`: ten false regressions with no confirmation step, five of
+them on same-code windows taken while this repository's own test suite was
+loading the machine. That failure is why confirmation exists
+([ADR 0002](docs/adr/0002-confirmation-batches.md)).
+
+## Checking any of this
+
+```
+uv run python -m evaluation.score v3
+uv run python -m script.validate_evidence
+```
+
+The validator reruns every comparator on every case of every version and
+requires an exact match, recomputes the summaries byte for byte, and checks
+each claim. A version published as a failure is pinned to its exact count, so
+the failure can neither be edited away nor drift. The weaker comparators are
+required to produce false regressions on the same windows; if they stop, the
+corpus is too quiet to support the claim and the build fails.
 
 ## How a verdict is reached
 
@@ -131,7 +154,8 @@ first-batch regression asks for a second batch instead of failing the step.
 | `src/tracelab/ingest` | reads an artifact store, highest sealed attempt only |
 | `src/tracelab/cli.py`, `report.py` | the command and the check it prints |
 | `evaluation/` | workloads, collector, cases, comparators, scorer |
-| `corpus/`, `policies/`, `evidence/` | each published version, frozen |
+| `corpus/`, `policies/`, `evidence/` | each published version, frozen; v3 reuses the v2 policies |
+| `evaluation/contention.py` | the contention schedule v3 was collected under |
 
 ## Documents
 

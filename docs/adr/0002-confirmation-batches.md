@@ -54,3 +54,13 @@ happens.
 
 A change in the machine that lasts across both batches and is absent from the
 baseline still reads as a regression. See docs/known-misses.md.
+
+## Measured
+
+v3 collected a corpus under scheduled contention to test this decision
+directly. On the nine windows where only the first batch was contended, the
+one-batch engine raised 31 false regressions and the confirmed engine 3. The
+pre-registered claim was zero. Two of the three remaining are the case this
+section says confirmation does not fix, a change in the machine that lasted
+across both batches. The third is a real 2% slowdown that drift pushed past
+the 3% threshold in both batches.

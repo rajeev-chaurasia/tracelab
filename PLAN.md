@@ -30,6 +30,13 @@ rather than left as first written. The substantive changes:
   on, no noise allowance above a metric's threshold, and 200 measured
   repetitions for matmul instead of 30, each traced to a cause in v1 rather
   than fitted to its table.
+- **v3 tested confirmation under real contention, and failed its claim by
+  three.** The schedule, the claim of zero false regressions on windows whose
+  first batch alone was contended, and the negative control were committed
+  before collection. Confirmation removed 28 of 31 burst-caused false
+  regressions. The three that remain trace to an unscheduled shift in the
+  machine that outlasted the gap between batches, and to a sub-threshold
+  change pushed over by drift. v3 is pinned at three, like v1.
 
 ## 1. The claim this repo has to earn
 
