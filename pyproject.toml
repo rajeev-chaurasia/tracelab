@@ -65,3 +65,9 @@ show_missing = true
 exclude_also = [
     "if __name__ == .__main__.:",
 ]
+
+[[tool.mypy.overrides]]
+# torch is installed only on the GPU machine the gpu workload runs on; the
+# workload imports it inside the function so nothing else needs it.
+module = ["torch"]
+ignore_missing_imports = true

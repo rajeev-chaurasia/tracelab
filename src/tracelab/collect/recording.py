@@ -23,6 +23,7 @@ from typing import Any
 from .base import Collector, Sample
 from .clock import MONOTONIC, WALL, Mapping, Reading, fit, sample
 from .ebpf import RunQueueCollector
+from .nvidia import NvidiaSmiSampler, import_nsys
 from .process import ProcessSampler
 from .system import SystemSampler
 from .timeline import Aligned, align
@@ -81,7 +82,11 @@ def record(
     sync_interval_s: float = 0.1,
     timeout_s: float = 120,
     ebpf: bool = False,
+    gpu: bool = False,
+    nsys: str | None = None,
 ) -> Recording:
+    """Record one run. `gpu` samples nvidia-smi; `nsys` names an Nsight Systems
+    binary to profile the workload under, whose CUDA kernels join the trace."""
     readings: list[Reading] = []
     done = threading.Event()
 
@@ -93,6 +98,9 @@ def record(
 
     system = SystemSampler()
     system.start()
+    external: list[Collector] = [NvidiaSmiSampler()] if gpu else []
+    for c in external:
+        c.start()
     syncer = threading.Thread(target=sync, daemon=True)
     syncer.start()
     origin = MONOTONIC()
@@ -100,6 +108,20 @@ def record(
     with tempfile.TemporaryDirectory() as scratch:
         t0_file = Path(scratch) / "t0"
         gate = Path(scratch) / "go"
+        report = Path(scratch) / "profile"
+        if nsys is not None:
+            command = [
+                nsys,
+                "profile",
+                "--trace=cuda",
+                "--sample=none",
+                "--cpuctxsw=none",
+                "--export=sqlite",
+                "--force-overwrite=true",
+                "-o",
+                str(report),
+                *command,
+            ]
         proc = subprocess.Popen(
             command,
             stdout=subprocess.PIPE,
@@ -116,12 +138,15 @@ def record(
         for c in collectors:
             c.stop()
         t0 = int(t0_file.read_text()) if t0_file.exists() else origin
+        kernels = import_nsys(report.with_suffix(".sqlite")) if nsys is not None else []
 
+    for c in external:
+        c.stop()
     system.stop()
     done.set()
     syncer.join()
 
     mappings = {"wall": fit(readings)}
-    samples = [s for c in [*collectors, system] for s in c.samples()]
+    samples = [s for c in [*collectors, *external, system] for s in c.samples()] + kernels
     samples += _workload_samples(stdout, t0) if proc.returncode == 0 else []
     return Recording(stdout, proc.returncode, align(samples, mappings), mappings, origin)

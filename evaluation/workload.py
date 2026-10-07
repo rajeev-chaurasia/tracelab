@@ -28,6 +28,7 @@ PERIODIC = {"warmups": 10, "repetitions": 150, "period_ns": 20_000_000, "size": 
 # machine, so the triad measures memory rather than cache bandwidth.
 MEMBW = {"warmups": 3, "repetitions": 30, "elements": 8_000_000}
 NETWORK = {"warmups": 3, "repetitions": 30, "bytes": 32 * 2**20, "chunk": 2**20}
+GPU = {"warmups": 5, "repetitions": 50, "size": 4096, "matmuls": 10}
 
 
 def _origin() -> int:
@@ -166,7 +167,43 @@ def network() -> None:
     client.close()
 
 
-WORKLOADS = {"matmul": matmul, "periodic": periodic, "membw": membw, "network": network}
+def gpu() -> None:
+    """fp16 matrix multiplies on a CUDA device, timed on the device itself.
+
+    CUDA events bracket the work on the GPU's own timeline, so the latency
+    is what the device spent, not what the host waited. The rate is FLOP per
+    second from 2 * n^3 per multiply, the conventional count, so changes in it
+    are meaningful and its absolute value is comparable to a datasheet.
+    """
+    import torch
+
+    n, count = GPU["size"], GPU["matmuls"]
+    a = torch.randn(n, n, device="cuda", dtype=torch.float16)
+    b = torch.randn(n, n, device="cuda", dtype=torch.float16)
+    start_event = torch.cuda.Event(enable_timing=True)
+    end_event = torch.cuda.Event(enable_timing=True)
+    flops = 2 * n**3 * count
+    t0 = _origin()
+    for i in range(GPU["warmups"] + GPU["repetitions"]):
+        start_event.record()
+        for _ in range(count):
+            a @ b
+        end_event.record()
+        end_event.synchronize()
+        elapsed_ns = start_event.elapsed_time(end_event) * 1e6
+        warmup = i < GPU["warmups"]
+        _emit("iteration_latency", i, warmup, elapsed_ns, "ns", t0)
+        _emit("matmul_throughput", i, warmup, flops / (elapsed_ns / 1e9), "ops_per_s", t0)
+        _emit("gpu_memory", i, warmup, float(torch.cuda.max_memory_allocated()), "bytes", t0)
+
+
+WORKLOADS = {
+    "matmul": matmul,
+    "periodic": periodic,
+    "membw": membw,
+    "network": network,
+    "gpu": gpu,
+}
 
 if __name__ == "__main__":
     WORKLOADS[sys.argv[1]]()

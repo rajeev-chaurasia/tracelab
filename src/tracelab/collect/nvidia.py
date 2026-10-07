@@ -1,10 +1,11 @@
 """NVIDIA GPU telemetry: nvidia-smi sampling and Nsight Systems trace import.
 
-Neither has been run against an NVIDIA GPU in this repository. The development
-machine has none. Both are written against the documented formats and tested
-against fixtures built to those formats, and docs/known-misses.md says so. They
-exist so a recording on a GPU rig puts GPU activity on the same timeline as
-everything else, with no change to the analysis.
+Both were written against the documented formats first, then run on an
+NVIDIA L4 in a GCP VM. That run found one gap the fixtures had hidden: a
+profile with no memory copies has no memcpy table at all. It also confirmed
+the time origin: a host wall-clock stamp taken just after a device
+synchronize lands 12 to 16 microseconds after session start plus the last
+kernel's end, which is the synchronize's own return latency.
 
 nvidia-smi in CSV query mode prints one line per GPU per interval, stamped
 with local wall-clock time to the millisecond. An Nsight Systems export to
@@ -114,10 +115,17 @@ def import_nsys(sqlite_path: Path) -> list[Sample]:
                     end - start,
                 )
             )
-        for start, end, device, nbytes, kind in db.execute(
-            "SELECT start, end, deviceId, bytes, copyKind FROM CUPTI_ACTIVITY_KIND_MEMCPY "
-            "ORDER BY start"
-        ):
+        tables = {name for (name,) in db.execute("SELECT name FROM sqlite_master")}
+        # nsys writes the memcpy table only when the profile saw a copy.
+        copies = (
+            db.execute(
+                "SELECT start, end, deviceId, bytes, copyKind FROM CUPTI_ACTIVITY_KIND_MEMCPY "
+                "ORDER BY start"
+            )
+            if "CUPTI_ACTIVITY_KIND_MEMCPY" in tables
+            else []
+        )
+        for start, end, device, nbytes, kind in copies:
             out.append(
                 Sample(
                     f"gpu{device}.memcpy",

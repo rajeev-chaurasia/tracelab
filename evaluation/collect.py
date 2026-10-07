@@ -61,22 +61,71 @@ def _preflight() -> dict[str, Any]:
     }
 
 
-RIG: dict[str, Any] = {
-    "rig_id": "dev-laptop",
-    "hardware_class": "laptop-arm64",
-    "arch": platform.machine(),
-    "os": sys.platform,
-    "kernel": platform.release(),
-    "cpu_model": _sysctl("machdep.cpu.brand_string") if sys.platform == "darwin" else "",
-    "cpu_cores": os.cpu_count() or 0,
-    "mem_bytes": int(_sysctl("hw.memsize")) if sys.platform == "darwin" else 0,
-    "gpu_vendor": "",
-    "gpu_model": "",
-    "gpu_memory_bytes": 0,
-    "driver_version": "",
-    "firmware": "",
-    "emulated": False,
-}
+def _linux_cpu_model() -> str:
+    for line in Path("/proc/cpuinfo").read_text().splitlines():
+        if line.startswith("model name"):
+            return line.split(":", 1)[1].strip()
+    return ""
+
+
+def _linux_mem_bytes() -> int:
+    for line in Path("/proc/meminfo").read_text().splitlines():
+        if line.startswith("MemTotal:"):
+            return int(line.split()[1]) * 1024
+    return 0
+
+
+def _nvidia() -> dict[str, Any]:
+    """The first GPU as nvidia-smi describes it, or nothing on a machine without one."""
+    try:
+        line = subprocess.run(
+            [
+                "nvidia-smi",
+                "--query-gpu=name,driver_version,memory.total",
+                "--format=csv,noheader,nounits",
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.splitlines()[0]
+    except (OSError, subprocess.CalledProcessError, IndexError):
+        return {}
+    name, driver, memory_mib = (c.strip() for c in line.split(","))
+    return {
+        "gpu_vendor": "nvidia",
+        "gpu_model": name,
+        "gpu_memory_bytes": int(memory_mib) * 2**20,
+        "driver_version": driver,
+    }
+
+
+def _rig() -> dict[str, Any]:
+    darwin = sys.platform == "darwin"
+    rig: dict[str, Any] = {
+        # Named by the environment on a rig, so a corpus says which machine
+        # it came from; the development laptop keeps the name every earlier
+        # corpus carries.
+        "rig_id": os.environ.get("TRACELAB_RIG_ID", "dev-laptop"),
+        "hardware_class": os.environ.get("TRACELAB_HARDWARE_CLASS", "laptop-arm64"),
+        "arch": platform.machine(),
+        "os": sys.platform,
+        "kernel": platform.release(),
+        "cpu_model": _sysctl("machdep.cpu.brand_string") if darwin else _linux_cpu_model(),
+        "cpu_cores": os.cpu_count() or 0,
+        "mem_bytes": int(_sysctl("hw.memsize")) if darwin else _linux_mem_bytes(),
+        "gpu_vendor": "",
+        "gpu_model": "",
+        "gpu_memory_bytes": 0,
+        "driver_version": "",
+        "firmware": "",
+        "emulated": False,
+    }
+    if not darwin:
+        rig.update(_nvidia())
+    return rig
+
+
+RIG: dict[str, Any] = _rig()
 
 METRICS = {
     "matmul": [
@@ -96,12 +145,20 @@ METRICS = {
         {"name": "network_throughput", "unit": "ops_per_s", "direction": "higher_is_better"},
         {"name": "cpu_time", "unit": "ns", "direction": "lower_is_better"},
     ],
+    # One op is one floating-point operation here, counted as 2 * n^3 per
+    # multiply, so the rate reads as FLOP per second.
+    "gpu": [
+        {"name": "iteration_latency", "unit": "ns", "direction": "lower_is_better"},
+        {"name": "matmul_throughput", "unit": "ops_per_s", "direction": "higher_is_better"},
+        {"name": "gpu_memory", "unit": "bytes", "direction": "lower_is_better"},
+    ],
 }
 SHAPE = {
     "matmul": workload.MATMUL,
     "periodic": workload.PERIODIC,
     "membw": workload.MEMBW,
     "network": workload.NETWORK,
+    "gpu": workload.GPU,
 }
 
 
@@ -196,15 +253,23 @@ def write_attempt(
 
 
 def collect_one(
-    benchmark: str, index: int, revision: str, store: Path = STORE, trace: bool = False
+    benchmark: str,
+    index: int,
+    revision: str,
+    store: Path = STORE,
+    trace: bool = False,
+    python: str = sys.executable,
+    gpu: bool = False,
 ) -> Path:
     timeout = spec(benchmark, revision, "")["timeout_seconds"]
-    command = [sys.executable, "-m", "evaluation.workload", benchmark]
+    # The interpreter is a parameter because a GPU workload needs the one
+    # with torch, which is the machine's, not this project's environment.
+    command = [python, "-m", "evaluation.workload", benchmark]
     before = _preflight()
     started = time.time_ns()
     extra: dict[str, bytes] = {}
     if trace:
-        recording = record(command, timeout_s=timeout)
+        recording = record(command, timeout_s=timeout, gpu=gpu)
         stdout, returncode = recording.stdout, recording.returncode
         extra["trace.json"] = json.dumps(
             perfetto(recording.aligned, recording.origin_ns, f"{benchmark} run {index}"),
@@ -270,6 +335,10 @@ def main() -> None:
         default=0,
         help="record every Nth index with all collectors and seal its aligned trace; 0 for none",
     )
+    parser.add_argument(
+        "--workload-python", default=sys.executable, help="interpreter that runs the workload"
+    )
+    parser.add_argument("--gpu", action="store_true", help="sample nvidia-smi in traced recordings")
     args = parser.parse_args()
     revision = subprocess.run(
         ["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True
@@ -283,7 +352,15 @@ def main() -> None:
             # Interleaved, so slow drift in the machine lands in both corpora alike.
             for benchmark in args.benchmarks:
                 traced = args.trace_every > 0 and index % args.trace_every == 0
-                path = collect_one(benchmark, index, revision, args.store, traced)
+                path = collect_one(
+                    benchmark,
+                    index,
+                    revision,
+                    args.store,
+                    traced,
+                    python=args.workload_python,
+                    gpu=args.gpu,
+                )
                 print(path, flush=True)
     finally:
         if hogs.running:

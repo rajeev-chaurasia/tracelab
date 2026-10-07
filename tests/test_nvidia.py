@@ -1,7 +1,8 @@
-"""NVIDIA collectors against fixtures built to the documented formats.
+"""NVIDIA collectors against fixtures built to the formats a real L4 produced.
 
-There is no NVIDIA GPU on the development machine, so these pin the parsing
-and the timeline placement, not the behaviour of a real driver.
+CI has no GPU, so these pin the parsing and the timeline placement. The
+fixtures follow the schema of a real nsys 2025.1 export from an L4 VM,
+including its habit of leaving out the memcpy table when nothing was copied.
 """
 
 import sqlite3
@@ -72,3 +73,15 @@ def test_nsys_kernels_and_copies_land_at_session_start_plus_offset(tmp_path: Pat
     assert copy.value == 1048576
     assert copy.duration_ns == 2000
     assert {s.domain for s in samples} == {"wall"}
+
+
+def test_a_profile_with_no_copies_has_no_memcpy_table_and_still_imports(tmp_path: Path) -> None:
+    path = nsys_fixture(tmp_path / "report.sqlite")
+    db = sqlite3.connect(path)
+    db.execute("DROP TABLE CUPTI_ACTIVITY_KIND_MEMCPY")
+    db.commit()
+    db.close()
+
+    samples = import_nsys(path)
+
+    assert [s.name for s in samples] == ["rmsnorm_fused_kernel"]

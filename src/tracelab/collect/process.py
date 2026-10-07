@@ -17,7 +17,11 @@ from .clock import MONOTONIC
 
 
 class ProcessSampler:
-    """Polls one process on a thread, stamping on the monotonic clock."""
+    """Polls one process and its descendants on a thread, on the monotonic clock.
+
+    Descendants count because a profiler such as nsys launches the workload
+    as its child; polling only the launcher would measure the launcher.
+    """
 
     name = "process"
 
@@ -47,11 +51,21 @@ class ProcessSampler:
     def _run(self) -> None:
         while not self._stop.is_set():
             try:
-                with self._process.oneshot():
-                    now = MONOTONIC()
-                    cpu = self._process.cpu_times()
-                    rss = self._process.memory_info().rss
-                    switches = self._process.num_ctx_switches()
+                tree = [self._process, *self._process.children(recursive=True)]
+                now = MONOTONIC()
+                user = system = 0.0
+                rss = voluntary = involuntary = 0
+                for proc in tree:
+                    try:
+                        with proc.oneshot():
+                            cpu = proc.cpu_times()
+                            user, system = user + cpu.user, system + cpu.system
+                            rss += proc.memory_info().rss
+                            ctx = proc.num_ctx_switches()
+                            voluntary += ctx.voluntary
+                            involuntary += ctx.involuntary
+                    except psutil.NoSuchProcess:
+                        continue
             except psutil.NoSuchProcess:
                 # The process finished between polls; its last reading is
                 # already recorded and there is nothing more to see.
@@ -59,11 +73,11 @@ class ProcessSampler:
             self._samples.extend(
                 Sample("process", name, now, float(value), unit, "monotonic")
                 for name, value, unit in (
-                    ("cpu_user", cpu.user * 1e9, "ns"),
-                    ("cpu_system", cpu.system * 1e9, "ns"),
+                    ("cpu_user", user * 1e9, "ns"),
+                    ("cpu_system", system * 1e9, "ns"),
                     ("rss", rss, "bytes"),
-                    ("ctx_voluntary", switches.voluntary, "count"),
-                    ("ctx_involuntary", switches.involuntary, "count"),
+                    ("ctx_voluntary", voluntary, "count"),
+                    ("ctx_involuntary", involuntary, "count"),
                 )
             )
             self._stop.wait(self.interval_s)
