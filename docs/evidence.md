@@ -7,11 +7,11 @@ check it, and what it cannot show.
 
 Each version has three parts, all committed:
 
-| part | v1 | v2 | v3 |
-| --- | --- | --- | --- |
-| corpus of sealed run artifacts | `corpus/v1/store`, 200 runs | `corpus/v2/store`, 300 runs | `corpus/v3/store`, 546 runs, and `corpus/v3/contention.jsonl` |
-| policies, committed before the corpus | `policies/v1` | `policies/v2` | `policies/v2`, unchanged |
-| every decision, and summaries derived from them | `evidence/v1` | `evidence/v2` | `evidence/v3` |
+| part | v1 | v2 | v3 | v4 |
+| --- | --- | --- | --- | --- |
+| corpus of sealed run artifacts | `corpus/v1/store`, 200 runs | `corpus/v2/store`, 300 runs | `corpus/v3/store`, 546 runs, and `corpus/v3/contention.jsonl` | `corpus/v4/store`, 300 runs, 30 with sealed traces |
+| policies, committed before the corpus | `policies/v1` | `policies/v2` | `policies/v2`, unchanged | `policies/v4` |
+| every decision, and summaries derived from them | `evidence/v1` | `evidence/v2` | `evidence/v3` | `evidence/v4` |
 
 A decision row names the case, the comparator, the verdict, every metric's
 interval, and the run ids on each side, so any single verdict can be traced to
@@ -23,7 +23,7 @@ the samples that produced it. `summary.json` and `summary.md` are computed from
 `evaluation/collect.py` runs each benchmark as a fresh process, wraps its
 samples in benchgrid's run artifact contract, and reads the result straight
 back through the contract reader before sealing it. A run the reader would
-reject stops collection. All 1,046 runs are accepted by
+reject stops collection. All 1,346 runs are accepted by
 `python -m tracelab.ingest`.
 
 The two benchmarks are interleaved, so slow drift in the machine lands in both
@@ -85,6 +85,29 @@ regressions, in three groups:
 - **Four real 2% slowdowns pushed past the threshold** by drift, in matmul
   windows 3, 129, 150 and 198.
 
+## v4, traced case by case
+
+v4 is the first evaluation judged on rates, memory bandwidth and loopback
+network throughput, where higher is better, and the first corpus whose runs
+carry their aligned traces. Its policies required zero TraceLab false
+regressions. There were eleven, against 37 for the pooled bootstrap and 141
+and 208 for the fixed gates.
+
+All eleven are in windows 57 to 72. Between runs 83 and 118 the machine had a
+disturbed stretch of about two minutes: at indexes 85, 87, 92, 93, 98, 116 and
+118 both workloads collapsed together, memory bandwidth to as little as 20
+GB/s against about 75, and network throughput to 8 GB/s against 20. Two
+unrelated benchmarks falling at the same index is the machine, not the code.
+The stretch was longer than the one-minute confirmation gap, so in those
+windows each batch caught a slow run and confirmation agreed with itself. It
+is the sustained-disturbance miss for the third time, this time unscheduled.
+
+v4 also shows the cost of the noise gate honestly. Memory bandwidth on this
+machine moves 11.6% from run to run, against a 5% limit, so most memory
+bandwidth cases are INCONCLUSIVE, and TraceLab caught 91 of 288 injected
+regressions against 242 and 248 for the fixed gates. Those gates bought their
+catches with 141 and 208 false ones.
+
 ## Reproducing and checking
 
 ```
@@ -97,10 +120,10 @@ on every case and requires an exact match, recomputes both summaries byte for
 byte, and then checks the claim. CI runs it on every push.
 
 For v2 the claim check requires zero TraceLab false regressions and at least
-one same-code false regression from a weaker comparator. For v1 and v3, which
-are published as failures, it requires exactly the published count: ten
+one same-code false regression from a weaker comparator. For v1, v3 and v4,
+which are published as failures, it requires exactly the published count: ten
 overall for v1, three on the targeted windows for v3, where the one-batch
-engine must also still raise at least one.
+engine must also still raise at least one, and eleven overall for v4.
 
 ## Changes to the harness after a result
 
@@ -111,6 +134,10 @@ Recorded here because each one could have been a way to move a number.
   held every first-batch regression at INCONCLUSIVE and made it look like a
   comparator that catches nothing and never false-alarms. It now runs single
   batch, as in v1. No TraceLab decision changed.
+- **After an independent review, the headline reason was fixed to name the
+  metric that decided the verdict.** That changed the `reason` text of 99 of
+  11,383 published decisions and no verdict, interval or count; each version
+  was republished and revalidated, and the diff was checked field by field.
 - **False improvements were added to the summary** once v2 showed TraceLab
   calling a confident p95 improvement on same-code windows. v1's decisions are
   unchanged; its summary files were regenerated from them to carry the new

@@ -77,6 +77,28 @@ deadline-miss rate is judged by its interval alone. A baseline whose miss rate
 jumps between zero and a few percent from run to run is not refused as too
 noisy; it only produces a wide interval.
 
+## The NVIDIA collectors have never seen an NVIDIA GPU
+
+`tracelab.collect.nvidia` parses nvidia-smi's CSV query output and Nsight
+Systems' SQLite export. Both are tested against fixtures built to the
+documented formats. Neither has run against a real driver or a real `nsys`
+export, so a format difference between the documentation and a given driver
+version would surface only on a GPU rig. No GPU metric in any corpus is real.
+
+## eBPF follows one thread, in a VM
+
+The run-queue collector filters on the workload's main thread, so waits on a
+helper thread, such as a BLAS pool, are not seen. The recordings were made in
+Docker Desktop's Linux VM, so the scheduler being measured shares its CPUs
+with a hypervisor; on bare metal the quiet numbers would likely be lower.
+
+## The rollups are checked against one warehouse
+
+The BigQuery SQL has been run on the emulator only. The emulator already
+disagreed with BigQuery once, on `APPROX_QUANTILES`, which is why every rollup
+is recomputed from the lake. A behaviour where the emulator and BigQuery
+disagree but the emulator happens to match the lake would not be caught.
+
 ## What the evaluation cannot show
 
 - **One machine.** An Apple M4 laptop in ordinary use, not an isolated rig.

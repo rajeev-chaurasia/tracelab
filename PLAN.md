@@ -18,9 +18,13 @@ rather than left as first written. The substantive changes:
   covers the revision and can never match across commits.
 - **There is no baseline branch.** A run does not know its branch. The caller
   supplies the set of known-good revisions instead.
-- **The lake was not built.** Section 3 planned a date-partitioned Parquet
-  lake queried through DuckDB. Nothing in the claim depends on it, and it is
-  listed in `docs/non-goals.md` instead of half built.
+- **The lake was built later, with more around it.** After the engine and its
+  evaluation, the project grew the layers the first plan left out: collectors
+  on one aligned timeline with a measured error bound, eBPF scheduler tracing
+  in a Linux container, NVIDIA collectors tested against their formats only,
+  a Parquet lake, BigQuery-dialect rollups checked value by value against the
+  lake on the BigQuery emulator, and Grafana over a Prometheus backfill. None
+  of it is deployed to a cloud, and docs/non-goals.md says so.
 - **v1 failed the claim, and stays published.** Ten false regressions, five
   of them same-code windows hit by a burst of load during the candidate runs.
   The validator pins that count, so the failure can neither be edited away nor
@@ -37,6 +41,10 @@ rather than left as first written. The substantive changes:
   regressions. The three that remain trace to an unscheduled shift in the
   machine that outlasted the gap between batches, and to a sub-threshold
   change pushed over by drift. v3 is pinned at three, like v1.
+- **v4 judged rates, and failed by eleven.** Memory bandwidth and network
+  throughput, where higher is better, with traces sealed in the artifacts.
+  Every false regression came from a disturbed stretch of the machine longer
+  than the confirmation gap. Pinned at eleven.
 
 ## 1. The claim this repo has to earn
 

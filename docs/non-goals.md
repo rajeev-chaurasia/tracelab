@@ -3,20 +3,21 @@
 Each of these is a real feature of a real performance platform, and each is
 deliberately absent. The list is here so the absences read as decisions.
 
-## No cloud warehouse, object store or dashboard
+## No cloud deployment
 
-There is no BigQuery, no GCS and no Grafana in this repository, and nothing
-here has been run against a cloud project. The artifact store is a directory
-in benchgrid's layout, read by the contract reader. A warehouse would make
-history queries fast and would not change a single verdict, and the verdicts
-are what this repository is trying to make believable.
+The warehouse runs against the BigQuery emulator and the dashboards against
+local Prometheus and Grafana containers. Nothing here has been run against a
+real GCP project, a GCS bucket or a hosted Grafana, and nothing claims to have
+been. The BigQuery client takes an endpoint, so the step is credentials, not
+code; it is still a step not taken.
 
-## No profiler
+## No sampling profiler
 
-TraceLab says that a metric moved, by how much and how sure it is. It does not
-capture Perfetto, perf or Nsight traces. The contract lists extra files such
-as profiler output in each run's manifest, so a report can link to them; the
-linking is not built.
+The collectors record what a workload did and when: iterations, CPU time,
+context switches, scheduler waits, GPU activity. None of them samples stacks,
+so there are no flame graphs and no per-function attribution. Nsight Systems
+and perf can produce those, and the run artifact can carry their output as
+extra files; turning it into stacks is not built.
 
 ## No scheduling
 
