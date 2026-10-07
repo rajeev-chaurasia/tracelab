@@ -59,7 +59,9 @@ def seed_for(case_id: str) -> int:
     return zlib.crc32(case_id.encode())
 
 
-def decide(case: Case, comparator: Comparator, policy: BenchmarkPolicy) -> dict[str, Any]:
+def decide(
+    case: Case, comparator: Comparator, policy: BenchmarkPolicy, exposure: str | None = None
+) -> dict[str, Any]:
     result: Comparison = comparator.run(case, policy, seed_for(case.case_id))
     row: dict[str, Any] = {
         "case_id": case.case_id,
@@ -88,6 +90,8 @@ def decide(case: Case, comparator: Comparator, policy: BenchmarkPolicy) -> dict[
     }
     # Only versions with a confirmation step carry these, so v1's published
     # rows keep the exact shape they were published in.
+    if exposure is not None:
+        row["exposure"] = exposure
     if case.confirmation is not None:
         row["confirmation_runs"] = [r.run_id for r in case.confirmation]
         row["confirmed_by"] = result.confirmation.verdict.value if result.confirmation else None
@@ -98,7 +102,12 @@ def decisions_for(version: Version) -> list[dict[str, Any]]:
     corpus = load_corpus(version.corpus)
     policies = load_policies(version.policies)
     return [
-        decide(case, comparator, policies[case.kind.benchmark])
+        decide(
+            case,
+            comparator,
+            policies[case.kind.benchmark],
+            version.exposure(case.start) if version.exposure else None,
+        )
         for case in cases(corpus, version.confirmation_gap)
         for comparator in version.comparators
     ]
@@ -135,7 +144,26 @@ def summarize(decisions: list[dict[str, Any]]) -> dict[str, Any]:
             "regressions_inconclusive": sum(d["verdict"] == "INCONCLUSIVE" for d in must_catch),
             "by_kind": {k: dict(sorted(v.items())) for k, v in sorted(by_kind.items())},
         }
+        # Only a corpus collected under contention labels its rows, so earlier
+        # versions' summaries keep the exact shape they were published in.
+        if any("exposure" in d for d in rows):
+            out["comparators"][name]["by_exposure"] = {
+                label: _counts([d for d in rows if d["exposure"] == label])
+                for label in sorted({d["exposure"] for d in rows})
+            }
     return out
+
+
+def _counts(rows: list[dict[str, Any]]) -> dict[str, int]:
+    must_catch = [d for d in rows if d["allowed"] == ["REGRESSION"]]
+    return {
+        "cases": len(rows),
+        "false_regressions": sum(
+            d["verdict"] == "REGRESSION" and "REGRESSION" not in d["allowed"] for d in rows
+        ),
+        "regressions_to_catch": len(must_catch),
+        "regressions_caught": sum(d["verdict"] == "REGRESSION" for d in must_catch),
+    }
 
 
 def describe_corpus(corpus: dict[str, list[Run]]) -> dict[str, Any]:
@@ -185,6 +213,18 @@ def render(summary: dict[str, Any], corpus: dict[str, Any]) -> str:
             f"| {s['regressions_caught']}/{s['regressions_to_catch']} "
             f"| {s['regressions_inconclusive']} |"
         )
+    if any("by_exposure" in s for s in summary["comparators"].values()):
+        lines += ["", "## By contention exposure", ""]
+        lines += [
+            "| comparator | exposure | cases | false regressions | regressions caught |",
+            "| --- | --- | ---: | ---: | ---: |",
+        ]
+        for name, s in summary["comparators"].items():
+            for label, c in s["by_exposure"].items():
+                lines.append(
+                    f"| {name} | {label} | {c['cases']} | {c['false_regressions']} "
+                    f"| {c['regressions_caught']}/{c['regressions_to_catch']} |"
+                )
     verdicts = [v.value for v in Verdict]
     for name, s in summary["comparators"].items():
         lines += ["", f"## {name}", "", "| case kind | " + " | ".join(verdicts) + " |"]

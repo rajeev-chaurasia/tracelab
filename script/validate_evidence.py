@@ -8,7 +8,10 @@ Four kinds of check per published version, in the order a skeptic would want:
    was edited.
 3. summary.json and summary.md are recomputed from decisions.jsonl and must
    match byte for byte.
-4. The claim. For a version whose claim must hold: TraceLab raises no false
+4. The claim. For a version collected under scheduled contention: no TraceLab
+   false regression on the windows whose first batch alone was contended, and
+   at least one from the one-batch engine there. For a version whose claim
+   must hold: TraceLab raises no false
    regression, and at least one weaker comparator raises one on a same-code
    case, because a corpus too quiet to fool anybody makes a clean row
    meaningless. For a version published as a failure: TraceLab's false
@@ -63,7 +66,31 @@ def check_summary(version: Version, published: list[dict[str, Any]]) -> list[str
     return errors
 
 
+def check_contention_claim(published: list[dict[str, Any]]) -> list[str]:
+    """v3's pre-registered claim, on the windows its schedule targeted.
+
+    TraceLab must raise no false regression where only the first batch ran
+    under a burst, and the one-batch engine must raise at least one there, or
+    the bursts were too weak to have tested confirmation at all.
+    """
+    summary = score.summarize(published)["comparators"]
+    target = "short_burst_first_batch"
+    errors = []
+    false = summary["tracelab"]["by_exposure"][target]["false_regressions"]
+    if false != 0:
+        errors.append(f"claim fails: tracelab raised {false} false regressions on {target}")
+    control = summary["tracelab_one_batch"]["by_exposure"][target]["false_regressions"]
+    if control == 0:
+        errors.append(
+            "negative control fails: the one-batch engine raised no false regression on "
+            f"{target}, so the bursts did not test confirmation"
+        )
+    return errors
+
+
 def check_claim(published: list[dict[str, Any]], pinned: int | None = None) -> list[str]:
+    if any("exposure" in d for d in published):
+        return check_contention_claim(published)
     summary = score.summarize(published)["comparators"]
     false = summary["tracelab"]["false_regressions"]
     if pinned is not None:

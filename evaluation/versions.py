@@ -8,10 +8,12 @@ noticing.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
 from evaluation.comparators import BASELINES, ONE_BATCH, TRACELAB, Comparator
+from evaluation.contention import exposure
 
 
 @dataclass(frozen=True)
@@ -25,6 +27,10 @@ class Version:
     # None means the claim must hold. A number means the published result is a
     # failure with exactly that many TraceLab false regressions.
     pinned_false_regressions: int | None
+    # Set for a corpus collected under scheduled contention. Each decision is
+    # labelled with how its window was exposed, and the claim is checked on
+    # the windows the schedule targeted rather than on all of them.
+    exposure: Callable[[int], str] | None = None
 
     @property
     def manifest(self) -> Path:
@@ -55,6 +61,18 @@ VERSIONS = {
             confirmation_gap=18,
             comparators=[TRACELAB, ONE_BATCH, *BASELINES],
             pinned_false_regressions=None,
+        ),
+        Version(
+            name="v3",
+            corpus=Path("corpus/v3/store"),
+            # The v2 policies, unchanged: v3 tests the same method under
+            # contention, not a new one.
+            policies=Path("policies/v2"),
+            out=Path("evidence/v3"),
+            confirmation_gap=18,
+            comparators=[TRACELAB, ONE_BATCH, *BASELINES],
+            pinned_false_regressions=None,
+            exposure=lambda start: exposure(start).value,
         ),
     ]
 }
