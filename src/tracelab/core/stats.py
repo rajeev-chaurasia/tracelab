@@ -52,10 +52,14 @@ class Statistic:
                 return cls(name, q)
         raise ValueError(f"unknown statistic {name!r}")
 
-    def of(self, values: FloatArray, axis: int | None = None) -> FloatArray:
+    def of(self, values: FloatArray, axis: int | None = None, *, padded: bool = True) -> FloatArray:
+        # The NaN-aware reductions are several times slower, and only padding
+        # for runs of unequal length ever introduces a NaN.
         if self.quantile is None:
-            return np.asarray(np.nanmean(values, axis=axis), dtype=np.float64)
-        return np.asarray(np.nanquantile(values, self.quantile, axis=axis), dtype=np.float64)
+            mean = np.nanmean if padded else np.mean
+            return np.asarray(mean(values, axis=axis), dtype=np.float64)
+        quantile = np.nanquantile if padded else np.quantile
+        return np.asarray(quantile(values, self.quantile, axis=axis), dtype=np.float64)
 
 
 @dataclass(frozen=True)
@@ -99,9 +103,11 @@ def resample(
     draws = rng.random((n_boot, n_runs, width))
     picks = np.floor(draws * chosen_lengths[..., None]).astype(np.int64)
     values = grid[chosen[..., None], picks]
-    # A replicate takes as many samples from a run as that run actually had.
-    values[np.arange(width)[None, None, :] >= chosen_lengths[..., None]] = np.nan
-    return statistic.of(values.reshape(n_boot, n_runs * width), axis=1)
+    ragged = bool((lengths != width).any())
+    if ragged:
+        # A replicate takes as many samples from a run as that run actually had.
+        values[np.arange(width)[None, None, :] >= chosen_lengths[..., None]] = np.nan
+    return statistic.of(values.reshape(n_boot, n_runs * width), axis=1, padded=ragged)
 
 
 def pooled(runs: Sequence[Sequence[float]]) -> list[list[float]]:
