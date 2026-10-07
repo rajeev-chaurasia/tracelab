@@ -43,7 +43,11 @@ def _one_batch(case: Case, policy: BenchmarkPolicy, seed: int) -> Comparison:
 
 
 def _pooled(case: Case, policy: BenchmarkPolicy, seed: int) -> Comparison:
-    return compare(case.candidates, Selection(case.baseline), policy, seed=seed, pool=True)
+    # Single batch, so it differs from tracelab_one_batch only in how it
+    # resamples. Left on, confirmation would hold every first-batch
+    # regression at INCONCLUSIVE, since no second batch is passed here.
+    single = policy.model_copy(update={"confirm_regressions": False})
+    return compare(case.candidates, Selection(case.baseline), single, seed=seed, pool=True)
 
 
 def _point(policy: MetricPolicy, base: list[Run], cand: list[Run]) -> MetricResult:
