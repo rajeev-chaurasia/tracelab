@@ -1,0 +1,109 @@
+{
+  "attempt": 1,
+  "environment": {
+    "binary_sha256": "f4cea4a86a03a008fc2dd0e70e065e4ae35b8208557b8e80cfca1bab0ffb805e",
+    "config_sha256": null,
+    "git_revision": "8b7a99ed838f5bafce6b0804b5beabc50be928d8",
+    "governor": "unmanaged",
+    "preflight_after": {
+      "cpu_util": null,
+      "gpu_util": null,
+      "load1": 6.4990234375,
+      "mem_free": null,
+      "temp_c": null
+    },
+    "preflight_before": {
+      "cpu_util": null,
+      "gpu_util": null,
+      "load1": 6.4990234375,
+      "mem_free": null,
+      "temp_c": null
+    }
+  },
+  "fence": 0,
+  "rig": {
+    "arch": "arm64",
+    "cpu_cores": 10,
+    "cpu_model": "Apple M4",
+    "driver_version": "",
+    "emulated": false,
+    "firmware": "",
+    "gpu_memory_bytes": 0,
+    "gpu_model": "",
+    "gpu_vendor": "",
+    "hardware_class": "laptop-arm64",
+    "kernel": "25.5.0",
+    "mem_bytes": 17179869184,
+    "os": "darwin",
+    "rig_id": "dev-laptop"
+  },
+  "run_id": "corpus-matmul-0099",
+  "schema_version": "benchgrid.run/v1",
+  "spec": {
+    "artifacts": {
+      "binary_sha256": "f4cea4a86a03a008fc2dd0e70e065e4ae35b8208557b8e80cfca1bab0ffb805e"
+    },
+    "benchmark": "matmul",
+    "command": [
+      "python",
+      "-m",
+      "evaluation.workload",
+      "matmul"
+    ],
+    "environment": {},
+    "metrics": [
+      {
+        "direction": "lower_is_better",
+        "name": "iteration_latency",
+        "unit": "ns"
+      },
+      {
+        "direction": "lower_is_better",
+        "name": "max_rss",
+        "unit": "bytes"
+      }
+    ],
+    "repetitions": 200,
+    "requirements": {
+      "arch": "arm64",
+      "hardware_class": "laptop-arm64"
+    },
+    "revision": "8b7a99ed838f5bafce6b0804b5beabc50be928d8",
+    "timeout_seconds": 60,
+    "warmups": 5
+  },
+  "spec_sha256": "fc780b02fd983c2254d1fbe04b2fa5a4783ff43aa930e23bc7c943d04378914b",
+  "status": "SUCCEEDED",
+  "status_reason": "",
+  "summary": {
+    "iteration_latency": {
+      "cv": 0.018773427091487885,
+      "mad": 1708.5,
+      "mean": 612789.16,
+      "median": 609354.5,
+      "n": 200,
+      "p90": 617433.3,
+      "p95": 634797.9,
+      "p99": 661747.83,
+      "stddev": 11504.152617714104,
+      "unit": "ns"
+    },
+    "max_rss": {
+      "cv": 0.00026933661825622054,
+      "mad": 0.0,
+      "mean": 35580149.76,
+      "median": 35586048.0,
+      "n": 200,
+      "p90": 35586048.0,
+      "p95": 35586048.0,
+      "p99": 35586048.0,
+      "stddev": 9583.037213408275,
+      "unit": "bytes"
+    }
+  },
+  "timing": {
+    "finished": "2026-10-07T02:19:44.668886000Z",
+    "lease_acquired": "2026-10-07T02:19:44.465216000Z",
+    "started": "2026-10-07T02:19:44.465216000Z"
+  }
+}
