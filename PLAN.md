@@ -1,5 +1,36 @@
 # tracelab, implementation plan
 
+## 0. Revisions
+
+This plan is corrected against what the build and the evaluation established,
+rather than left as first written. The substantive changes:
+
+- **The run format is benchgrid's, not mine.** The first schema here was a
+  `RunResult` model of my own. It was retired in favour of benchgrid's run
+  artifact contract, read by the contract reader in `tracelab.core.contract`
+  and `tracelab.ingest`, which was built separately. The analysis maps a
+  validated artifact into `tracelab.core.run`.
+- **Comparability follows the contract.** The first draft made a driver change
+  disqualifying. The contract leaves driver, kernel and governor out of its
+  comparability set and puts a needed driver in the spec's requirements, so
+  they are now reported as drift. The cross-commit comparison key is
+  TraceLab's own definition, recorded in ADR 0001, because the spec hash
+  covers the revision and can never match across commits.
+- **There is no baseline branch.** A run does not know its branch. The caller
+  supplies the set of known-good revisions instead.
+- **The lake was not built.** Section 3 planned a date-partitioned Parquet
+  lake queried through DuckDB. Nothing in the claim depends on it, and it is
+  listed in `docs/non-goals.md` instead of half built.
+- **v1 failed the claim, and stays published.** Ten false regressions, five
+  of them same-code windows hit by a burst of load during the candidate runs.
+  The validator pins that count, so the failure can neither be edited away nor
+  drift. ADR 0002 records the response: a regression blocks only when a second
+  batch, run later, agrees on the same metric.
+- **v2's policies and workload changed before v2 was collected.** Confirmation
+  on, no noise allowance above a metric's threshold, and 200 measured
+  repetitions for matmul instead of 30, each traced to a cause in v1 rather
+  than fitted to its table.
+
 ## 1. The claim this repo has to earn
 
 Every performance regression gate makes the same promise: if a change made the
@@ -38,10 +69,9 @@ Three things follow from that wording:
 Written first so the absences read as decisions. Expanded in
 `docs/non-goals.md` once the code exists to judge them against.
 
-- **No BigQuery, no GCS, no Grafana in this repository.** The storage layer is a
-  date-partitioned Parquet lake queried through DuckDB, laid out the way a
-  BigQuery table would be partitioned and clustered. The production mapping is
-  documented, not claimed. Nothing here has been run against a cloud project.
+- **No BigQuery, no GCS, no Grafana in this repository.** Runs are read from
+  an artifact store in benchgrid's directory layout. Nothing here has been
+  run against a cloud project, and nothing claims to have been.
 - **No profiler.** TraceLab links a verdict to profiler artifacts by URI and
   checksum. It does not capture Perfetto or Nsight traces itself.
 - **No GPU metrics from real hardware.** The development machine has no NVIDIA
@@ -54,9 +84,9 @@ Written first so the absences read as decisions. Expanded in
 ## 3. Shape
 
 ```
-RunResult (BenchGrid contract, JSON)
-   -> normalize -> MetricPoint rows        tracelab.core.schema
-   -> lake (Parquet, partitioned by date)  tracelab.store
+benchgrid run artifact (run.json, samples.jsonl, manifest.json)
+   -> artifact store, read and validated   tracelab.ingest, tracelab.core.contract
+   -> analysis view of a run               tracelab.core.run
    -> baseline selection                   tracelab.core.baseline
    -> comparability check                  tracelab.core.compat
    -> hierarchical bootstrap per metric    tracelab.core.stats
