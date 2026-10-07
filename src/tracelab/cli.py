@@ -1,6 +1,6 @@
 """Command line entry points.
 
-    tracelab compare <store> --policy policies/matmul.toml \
+    tracelab compare <store> --policy policies/v2/matmul.toml \
         --candidate <revision> --known-good revisions.txt
 """
 
@@ -64,8 +64,15 @@ def compare(
         typer.echo(f"no runs of {bench.benchmark} at revision {candidate} in {store}", err=True)
         raise typer.Exit(2)
     revisions = {line.strip() for line in known_good.read_text().splitlines() if line.strip()}
+    confirmation: list[Run] | None = None
+    if bench.confirm_regressions:
+        # The run artifact carries no batch id, so batches are inferred from
+        # start order: the earliest runs are the first batch and the ones after
+        # them the confirmation. See docs/known-misses.md.
+        size = bench.min_candidate_runs
+        candidates, confirmation = candidates[:size], candidates[size : 2 * size] or None
     selection = select(candidates, (r for r in mine if r.revision != candidate), bench, revisions)
-    result = run_compare(candidates, selection, bench, seed=seed)
+    result = run_compare(candidates, selection, bench, seed=seed, confirmation=confirmation)
 
     typer.echo(render(bench.benchmark, result, candidates), nl=False)
     for problem in problems:

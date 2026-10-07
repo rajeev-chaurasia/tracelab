@@ -9,7 +9,7 @@ from evaluation import workload
 from evaluation.collect import write_attempt
 from tracelab.cli import app
 
-POLICY = Path("policies/matmul.toml")
+POLICY = Path("policies/v2/matmul.toml")
 CANDIDATE = "c" * 40
 PREFLIGHT = {"load1": 1.0, "cpu_util": None, "mem_free": None, "gpu_util": None, "temp_c": None}
 
@@ -36,11 +36,12 @@ def _sample(metric: str, i: int, warmup: bool, value: float, unit: str) -> dict[
     }
 
 
-def build_store(root: Path, candidate_level: float) -> Path:
+def build_store(root: Path, *candidate_levels: float) -> Path:
+    """Twenty baseline runs at 600 us, then one candidate run per level, in order."""
     rng = np.random.default_rng(0)
-    for i in range(23):
+    levels = [600_000.0] * 20 + list(candidate_levels)
+    for i, level in enumerate(levels):
         is_candidate = i >= 20
-        level = candidate_level if is_candidate else 600_000.0
         write_attempt(
             root,
             f"run-{i:02d}",
@@ -73,8 +74,26 @@ def invoke(store: Path, tmp_path: Path, candidate: str = CANDIDATE):  # type: ig
     )
 
 
-def test_a_slower_candidate_fails_the_step_with_the_evidence(tmp_path: Path) -> None:
-    result = invoke(build_store(tmp_path / "store", 720_000.0), tmp_path)
+def test_a_slower_first_batch_waits_for_a_second_without_failing(tmp_path: Path) -> None:
+    result = invoke(build_store(tmp_path / "store", *[720_000.0] * 3), tmp_path)
+
+    assert result.exit_code == 0, result.output
+    assert result.output.startswith("## Inconclusive")
+    assert "Run another batch of the same revision" in result.output
+    assert "conclusion: neutral" in result.output
+
+
+def test_a_slower_first_batch_the_second_does_not_confirm_is_neutral(tmp_path: Path) -> None:
+    store = build_store(tmp_path / "store", *[720_000.0] * 3, *[600_000.0] * 3)
+
+    result = invoke(store, tmp_path)
+
+    assert result.exit_code == 0, result.output
+    assert "Confirmation batch: PASS." in result.output
+
+
+def test_a_confirmed_slowdown_fails_the_step_with_the_evidence(tmp_path: Path) -> None:
+    result = invoke(build_store(tmp_path / "store", *[720_000.0] * 6), tmp_path)
 
     assert result.exit_code == 1, result.output
     assert "## PERFORMANCE REGRESSION: matmul" in result.output
@@ -82,30 +101,32 @@ def test_a_slower_candidate_fails_the_step_with_the_evidence(tmp_path: Path) -> 
         line for line in result.output.splitlines() if line.startswith("| iteration_latency.median")
     ]
     # About 600 us against about 720 us, printed in the unit a person reads.
-    assert "| critical | 6" in row
+    assert row.startswith("| iteration_latency.median | critical | ")
     assert " us | 7" in row
     assert row.endswith("| REGRESSION |")
     assert "Hardware: laptop-arm64" in result.output
     assert "Baseline runs: 20." in result.output
+    assert "Confirmation batch: REGRESSION." in result.output
     assert "conclusion: failure" in result.output
 
 
 def test_an_unchanged_candidate_does_not_fail_the_step(tmp_path: Path) -> None:
-    result = invoke(build_store(tmp_path / "store", 600_000.0), tmp_path)
+    result = invoke(build_store(tmp_path / "store", *[600_000.0] * 3), tmp_path)
 
     assert result.exit_code == 0, result.output
     assert "REGRESSION" not in result.output.split("\n")[0]
 
 
 def test_an_unknown_revision_is_a_usage_error(tmp_path: Path) -> None:
-    result = invoke(build_store(tmp_path / "store", 600_000.0), tmp_path, candidate="d" * 40)
+    store = build_store(tmp_path / "store", *[600_000.0] * 3)
+    result = invoke(store, tmp_path, candidate="d" * 40)
 
     assert result.exit_code == 2
     assert "no runs of matmul" in result.output
 
 
 def test_a_rejected_run_is_reported_not_skipped_silently(tmp_path: Path) -> None:
-    store = build_store(tmp_path / "store", 600_000.0)
+    store = build_store(tmp_path / "store", *[600_000.0] * 3)
     samples_file = store / "runs" / "run-03" / "attempt-1" / "samples.jsonl"
     samples_file.write_bytes(samples_file.read_bytes() + b"\n")
 

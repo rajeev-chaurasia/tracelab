@@ -87,6 +87,13 @@ def render(benchmark: str, result: Comparison, candidates: list[Run]) -> str:
     lines.append(
         f"Candidate runs: {len(result.candidate_runs)}. Baseline runs: {len(result.baseline_runs)}."
     )
+    if result.needs_confirmation:
+        lines.append(
+            "The first batch regressed. Run another batch of the same revision, later, "
+            "and compare again; it blocks only if both agree."
+        )
+    elif result.confirmation is not None:
+        lines.append(f"Confirmation batch: {result.confirmation.verdict.value}.")
     if result.excluded:
         left_out = ", ".join(f"{n} {why}" for why, n in sorted(result.excluded.items()))
         lines.append(f"Left out of the baseline: {left_out}.")
