@@ -1,5 +1,8 @@
 """The command a CI step runs, end to end through a real artifact store."""
 
+import hashlib
+import json
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -133,3 +136,38 @@ def test_a_rejected_run_is_reported_not_skipped_silently(tmp_path: Path) -> None
     result = invoke(store, tmp_path)
 
     assert "warning: run-03: rejected (manifest_size_mismatch)" in result.output
+
+
+def test_the_report_links_evidence_sealed_with_the_candidate_runs(tmp_path: Path) -> None:
+    store = build_store(tmp_path / "store", *[720_000.0] * 6)
+    for run_dir in sorted((store / "runs").iterdir())[20:]:
+        attempt = run_dir / "attempt-1"
+        trace = b'{"traceEvents":[]}'
+        (attempt / "trace.json").write_bytes(trace)
+        manifest = json.loads((attempt / "manifest.json").read_text())
+        manifest["files"].append(
+            {"path": "trace.json", "sha256": hashlib.sha256(trace).hexdigest(), "size": len(trace)}
+        )
+        manifest["files"].sort(key=lambda f: f["path"])
+        (attempt / "manifest.json").write_text(json.dumps(manifest))
+
+    result = invoke(store, tmp_path)
+
+    assert result.exit_code == 1, result.output
+    assert "Evidence sealed with the candidate runs:" in result.output
+    assert "run-20: " in result.output
+    assert result.output.count("trace.json") == 6
+
+
+def test_record_writes_an_aligned_trace_and_reports_its_error(tmp_path: Path) -> None:
+    from .test_collect import WORKLOAD
+
+    out = tmp_path / "trace.json"
+    result = CliRunner().invoke(
+        app, ["record", "--out", str(out), "--", sys.executable, "-c", WORKLOAD]
+    )
+
+    assert result.exit_code == 0, result.output
+    assert "workload samples" in result.output
+    assert "alignment error bound:" in result.output
+    assert json.loads(out.read_text())["traceEvents"]

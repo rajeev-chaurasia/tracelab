@@ -7,6 +7,8 @@ what hardware, and what was left out and why.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from tracelab.core.compare import Comparison, MetricResult
 from tracelab.core.policy import Verdict
 from tracelab.core.run import Run
@@ -59,7 +61,12 @@ def _change(m: MetricResult) -> tuple[str, str]:
     return f"{e.change:+.4f}", f"[{e.low:+.4f}, {e.high:+.4f}]"
 
 
-def render(benchmark: str, result: Comparison, candidates: list[Run]) -> str:
+def render(
+    benchmark: str,
+    result: Comparison,
+    candidates: list[Run],
+    artifacts: dict[str, list[Path]] | None = None,
+) -> str:
     units = {name: s.unit for r in candidates for name, s in r.metrics.items()}
     lines = [f"## {HEADINGS[result.verdict]}: {benchmark}", "", result.reason, ""]
     if result.metrics:
@@ -94,6 +101,10 @@ def render(benchmark: str, result: Comparison, candidates: list[Run]) -> str:
         )
     elif result.confirmation is not None:
         lines.append(f"Confirmation batch: {result.confirmation.verdict.value}.")
+    traces = [(run_id, p) for run_id, paths in (artifacts or {}).items() for p in paths]
+    if traces:
+        lines.append("Evidence sealed with the candidate runs:")
+        lines += [f"- {run_id}: {path}" for run_id, path in traces]
     if result.excluded:
         left_out = ", ".join(f"{n} {why}" for why, n in sorted(result.excluded.items()))
         lines.append(f"Left out of the baseline: {left_out}.")

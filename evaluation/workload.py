@@ -13,14 +13,35 @@ would not contain it.
 from __future__ import annotations
 
 import json
+import os
 import resource
+import socket
 import sys
+import threading
 import time
 
 import numpy as np
 
 MATMUL = {"warmups": 5, "repetitions": 200, "size": 256}
 PERIODIC = {"warmups": 10, "repetitions": 150, "period_ns": 20_000_000, "size": 128}
+# 8M doubles is 64 MiB per array, far past any cache on the development
+# machine, so the triad measures memory rather than cache bandwidth.
+MEMBW = {"warmups": 3, "repetitions": 30, "elements": 8_000_000}
+NETWORK = {"warmups": 3, "repetitions": 30, "bytes": 32 * 2**20, "chunk": 2**20}
+
+
+def _origin() -> int:
+    """The monotonic origin of every t_offset_ns, shared with a recorder if one asks.
+
+    A recorder sets TRACELAB_T0_FILE so it can place this process's samples on
+    its own timeline. Without it the workload behaves exactly as before.
+    """
+    t0 = time.monotonic_ns()
+    target = os.environ.get("TRACELAB_T0_FILE")
+    if target:
+        with open(target, "w") as handle:
+            handle.write(str(t0))
+    return t0
 
 
 def _max_rss_bytes() -> float:
@@ -45,7 +66,7 @@ def matmul() -> None:
     rng = np.random.default_rng(0)
     a = rng.random((MATMUL["size"], MATMUL["size"]))
     b = rng.random((MATMUL["size"], MATMUL["size"]))
-    t0 = time.monotonic_ns()
+    t0 = _origin()
     for i in range(MATMUL["warmups"] + MATMUL["repetitions"]):
         start = time.perf_counter_ns()
         for _ in range(8):
@@ -66,7 +87,7 @@ def periodic() -> None:
     rng = np.random.default_rng(0)
     a = rng.random((PERIODIC["size"], PERIODIC["size"]))
     period = PERIODIC["period_ns"]
-    t0 = time.monotonic_ns()
+    t0 = _origin()
     previous = time.perf_counter_ns()
     deadline = previous
     for i in range(PERIODIC["warmups"] + PERIODIC["repetitions"]):
@@ -80,5 +101,66 @@ def periodic() -> None:
         previous = now
 
 
+def membw() -> None:
+    """STREAM's triad, a = b + s * c, reported as bytes moved per second.
+
+    numpy needs a temporary for s * c, so each iteration reads b, c and the
+    temporary and writes the temporary and a: five arrays of traffic. The
+    count is part of the metric's definition, not an estimate of hardware
+    traffic, so only changes in it are meaningful, not its absolute value.
+    """
+    n = MEMBW["elements"]
+    a, b, c, tmp = (np.ones(n) for _ in range(4))
+    moved = 5 * 8 * n
+    t0 = _origin()
+    for i in range(MEMBW["warmups"] + MEMBW["repetitions"]):
+        cpu = time.process_time_ns()
+        start = time.perf_counter_ns()
+        np.multiply(c, 3.0, out=tmp)
+        np.add(b, tmp, out=a)
+        elapsed = time.perf_counter_ns() - start
+        warmup = i < MEMBW["warmups"]
+        _emit("iteration_latency", i, warmup, float(elapsed), "ns", t0)
+        _emit("memory_bandwidth", i, warmup, moved / (elapsed / 1e9), "ops_per_s", t0)
+        _emit("cpu_time", i, warmup, float(time.process_time_ns() - cpu), "ns", t0)
+
+
+def network() -> None:
+    """Loopback TCP: push a fixed payload to a reader thread and time it.
+
+    Loopback never touches a NIC, so this measures the kernel's TCP path and
+    the scheduler, which is exactly what contention and a kernel change move.
+    """
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server.bind(("127.0.0.1", 0))
+    server.listen(1)
+    total, chunk = NETWORK["bytes"], NETWORK["chunk"]
+
+    def drain() -> None:
+        conn, _ = server.accept()
+        with conn:
+            while conn.recv(chunk):
+                pass
+
+    reader = threading.Thread(target=drain, daemon=True)
+    reader.start()
+    client = socket.create_connection(server.getsockname())
+    payload = b"\0" * chunk
+    t0 = _origin()
+    for i in range(NETWORK["warmups"] + NETWORK["repetitions"]):
+        cpu = time.process_time_ns()
+        start = time.perf_counter_ns()
+        for _ in range(total // chunk):
+            client.sendall(payload)
+        elapsed = time.perf_counter_ns() - start
+        warmup = i < NETWORK["warmups"]
+        _emit("iteration_latency", i, warmup, float(elapsed), "ns", t0)
+        _emit("network_throughput", i, warmup, total / (elapsed / 1e9), "ops_per_s", t0)
+        _emit("cpu_time", i, warmup, float(time.process_time_ns() - cpu), "ns", t0)
+    client.close()
+
+
+WORKLOADS = {"matmul": matmul, "periodic": periodic, "membw": membw, "network": network}
+
 if __name__ == "__main__":
-    {"matmul": matmul, "periodic": periodic}[sys.argv[1]]()
+    WORKLOADS[sys.argv[1]]()

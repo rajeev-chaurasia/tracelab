@@ -28,6 +28,8 @@ from typing import Any
 
 from evaluation import workload
 from evaluation.contention import Hogs, under_contention
+from tracelab.collect.recording import record
+from tracelab.collect.timeline import perfetto
 from tracelab.core.canon import sha256_hex
 from tracelab.core.contract import validate_attempt
 from tracelab.core.describe import summarize
@@ -82,8 +84,25 @@ METRICS = {
         {"name": "max_rss", "unit": "bytes", "direction": "lower_is_better"},
     ],
     "periodic": [{"name": "tick_interval", "unit": "ns", "direction": "lower_is_better"}],
+    # Rates are in ops_per_s, the contract's only rate unit, where one op is
+    # one byte moved. The metric name carries that meaning.
+    "membw": [
+        {"name": "iteration_latency", "unit": "ns", "direction": "lower_is_better"},
+        {"name": "memory_bandwidth", "unit": "ops_per_s", "direction": "higher_is_better"},
+        {"name": "cpu_time", "unit": "ns", "direction": "lower_is_better"},
+    ],
+    "network": [
+        {"name": "iteration_latency", "unit": "ns", "direction": "lower_is_better"},
+        {"name": "network_throughput", "unit": "ops_per_s", "direction": "higher_is_better"},
+        {"name": "cpu_time", "unit": "ns", "direction": "lower_is_better"},
+    ],
 }
-SHAPE = {"matmul": workload.MATMUL, "periodic": workload.PERIODIC}
+SHAPE = {
+    "matmul": workload.MATMUL,
+    "periodic": workload.PERIODIC,
+    "membw": workload.MEMBW,
+    "network": workload.NETWORK,
+}
 
 
 def spec(benchmark: str, revision: str, binary_sha256: str) -> dict[str, Any]:
@@ -115,6 +134,7 @@ def write_attempt(
     status: str = "SUCCEEDED",
     status_reason: str = "",
     rig: dict[str, Any] | None = None,
+    extra: dict[str, bytes] | None = None,
 ) -> Path:
     """Seal one attempt in the contract's layout, after the reader accepts it."""
     run_spec = spec(benchmark, revision, binary_sha256)
@@ -152,6 +172,9 @@ def write_attempt(
     files = {
         "run.json": (json.dumps(run, indent=2, sort_keys=True) + "\n").encode(),
         "samples.jsonl": "".join(json.dumps(s, sort_keys=True) + "\n" for s in samples).encode(),
+        # Profiler output and traces ride along as extra files, which the
+        # contract lists in the manifest like any other.
+        **(extra or {}),
     }
     manifest = {
         "schema_version": "benchgrid.manifest/v1",
@@ -167,35 +190,61 @@ def write_attempt(
     attempt.mkdir(parents=True, exist_ok=False)
     # Sealed last, as the contract requires, so an interrupted collection
     # leaves a directory the reader ignores rather than a partial run.
-    for path in ("run.json", "samples.jsonl", "manifest.json"):
+    for path in [*sorted(p for p in files if p != "manifest.json"), "manifest.json"]:
         (attempt / path).write_bytes(files[path])
     return attempt
 
 
-def collect_one(benchmark: str, index: int, revision: str, store: Path = STORE) -> Path:
+def collect_one(
+    benchmark: str, index: int, revision: str, store: Path = STORE, trace: bool = False
+) -> Path:
     timeout = spec(benchmark, revision, "")["timeout_seconds"]
+    command = [sys.executable, "-m", "evaluation.workload", benchmark]
     before = _preflight()
     started = time.time_ns()
-    proc = subprocess.run(
-        [sys.executable, "-m", "evaluation.workload", benchmark],
-        capture_output=True,
-        timeout=timeout,
-    )
+    extra: dict[str, bytes] = {}
+    if trace:
+        recording = record(command, timeout_s=timeout)
+        stdout, returncode = recording.stdout, recording.returncode
+        extra["trace.json"] = json.dumps(
+            perfetto(recording.aligned, recording.origin_ns, f"{benchmark} run {index}"),
+            separators=(",", ":"),
+        ).encode()
+        extra["alignment.json"] = json.dumps(
+            {
+                "error_bound_ns": recording.alignment_error_bound_ns,
+                "mappings": {
+                    domain: {
+                        "readings": m.readings,
+                        "slope": m.slope,
+                        "max_uncertainty_ns": m.max_uncertainty_ns,
+                        "max_residual_ns": m.max_residual_ns,
+                    }
+                    for domain, m in recording.mappings.items()
+                },
+                "samples": recording.counts(),
+            },
+            sort_keys=True,
+        ).encode()
+    else:
+        proc = subprocess.run(command, capture_output=True, timeout=timeout)
+        stdout, returncode = proc.stdout.decode(), proc.returncode
     finished = time.time_ns()
     after = _preflight()
-    ok = proc.returncode == 0
+    ok = returncode == 0
     return write_attempt(
         store,
         f"corpus-{benchmark}-{index:04d}",
         benchmark,
         revision,
-        [json.loads(line) for line in proc.stdout.decode().splitlines()],
+        [json.loads(line) for line in stdout.splitlines()],
         binary_sha256=hashlib.sha256(WORKLOAD.read_bytes()).hexdigest(),
         started_ns=started,
         finished_ns=finished,
         preflight=(before, after),
         status="SUCCEEDED" if ok else "FAILED",
-        status_reason="" if ok else f"exit:{proc.returncode}",
+        status_reason="" if ok else f"exit:{returncode}",
+        extra=extra,
     )
 
 
@@ -208,6 +257,18 @@ def main() -> None:
         action="store_true",
         help="start and stop CPU contention on the schedule in evaluation/contention.py",
     )
+    parser.add_argument(
+        "--benchmarks",
+        nargs="+",
+        default=["matmul", "periodic"],
+        choices=sorted(METRICS),
+        help="benchmarks to interleave at each index",
+    )
+    parser.add_argument(
+        "--trace",
+        action="store_true",
+        help="record every run with all collectors and seal its aligned trace in the artifact",
+    )
     args = parser.parse_args()
     revision = subprocess.run(
         ["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True
@@ -219,8 +280,8 @@ def main() -> None:
             if args.contention:
                 _switch(hogs, under_contention(index), index, log)
             # Interleaved, so slow drift in the machine lands in both corpora alike.
-            for benchmark in ("matmul", "periodic"):
-                path = collect_one(benchmark, index, revision, args.store)
+            for benchmark in args.benchmarks:
+                path = collect_one(benchmark, index, revision, args.store, args.trace)
                 print(path, flush=True)
     finally:
         if hogs.running:
