@@ -85,3 +85,25 @@ def test_a_profile_with_no_copies_has_no_memcpy_table_and_still_imports(tmp_path
     samples = import_nsys(path)
 
     assert [s.name for s in samples] == ["rmsnorm_fused_kernel"]
+
+
+def test_gpu_alignment_counts_kernels_inside_each_iteration() -> None:
+    from evaluation.gpu_alignment import check
+
+    events: list[dict[str, object]] = [
+        {"ph": "M", "pid": 1, "name": "process_name", "args": {"name": "workload"}},
+        {"ph": "M", "pid": 2, "name": "process_name", "args": {"name": "gpu0.stream7"}},
+    ]
+    for i in range(3):
+        start = i * 1000.0
+        events.append({"ph": "X", "pid": 1, "name": "iteration_latency", "ts": start, "dur": 100.0})
+        for k in range(2):
+            events.append(
+                {"ph": "X", "pid": 2, "name": "sm80_gemm", "ts": start + 10 + 40 * k, "dur": 40.0}
+            )
+
+    result = check({"traceEvents": events})
+
+    assert result["kernels_inside_each_iteration"] == {2: 3}
+    assert result["kernel_time_over_event_time"]["median"] == 0.8
+    assert result["slack_us"] == {"before_first_kernel": 10.0, "after_last_kernel": 10.0}

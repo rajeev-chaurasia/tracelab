@@ -55,6 +55,10 @@ class Recording:
 def _workload_samples(stdout: str, t0_ns: int) -> list[Sample]:
     out = []
     for line in stdout.splitlines():
+        # A wrapper such as nsys prints its own status lines into the same
+        # stream; the workload's samples are the lines that are JSON objects.
+        if not line.startswith("{"):
+            continue
         record: dict[str, Any] = json.loads(line)
         end = t0_ns + int(record["t_offset_ns"])
         value = float(record["value"])

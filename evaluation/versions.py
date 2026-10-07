@@ -97,7 +97,12 @@ VERSIONS = {
             out=Path("evidence/v5"),
             confirmation_gap=18,
             comparators=[TRACELAB, ONE_BATCH, *BASELINES],
-            pinned_false_regressions=None,
+            # Published as a failure: three real 2% slowdowns called past the 3%
+            # threshold in the earliest windows, while the L4 was still heating
+            # and its clock settling. Its negative control also fails, which the
+            # pin does not hide: docs/evidence.md says the corpus cannot tell
+            # the methods apart.
+            pinned_false_regressions=3,
         ),
     ]
 }

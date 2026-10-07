@@ -1,0 +1,15 @@
+{
+  "iterations": 50,
+  "kernel_time_over_event_time": {
+    "max": 0.9967626672047668,
+    "median": 0.9960676917843441,
+    "min": 0.9953200306703667
+  },
+  "kernels_inside_each_iteration": {
+    "10": 50
+  },
+  "slack_us": {
+    "after_last_kernel": 37.21200000005774,
+    "before_first_kernel": 51.06950000021607
+  }
+}
