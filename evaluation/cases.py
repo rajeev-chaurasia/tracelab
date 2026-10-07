@@ -221,7 +221,7 @@ KINDS: list[Kind] = [
 ]
 
 
-def _throughput_kinds(benchmark: str, rate: str) -> list[Kind]:
+def _throughput_kinds(benchmark: str, rate: str, guardrail: str = "cpu_time") -> list[Kind]:
     """The cases for a benchmark judged on a rate, where higher is better.
 
     Written before v4 was collected, with the same thresholds as the policies
@@ -235,7 +235,9 @@ def _throughput_kinds(benchmark: str, rate: str) -> list[Kind]:
         Kind("slower_20%", benchmark, frozenset({V.REGRESSION}), True, _slower(rate, 1.20)),
         Kind("faster_10%", benchmark, frozenset({V.IMPROVEMENT}), False, _slower(rate, 1 / 1.10)),
         Kind("latency_tail_x1.5", benchmark, frozenset({V.REGRESSION}), True, _tail(LAT, 1.5)),
-        Kind("cpu_time_+10%", benchmark, frozenset({V.WARNING}), False, _scale(CPU, 1.10)),
+        Kind(
+            f"{guardrail}_+10%", benchmark, frozenset({V.WARNING}), False, _scale(guardrail, 1.10)
+        ),
         Kind(
             "noisy_baseline_same_code",
             benchmark,
@@ -250,6 +252,9 @@ CPU = "cpu_time"
 KINDS += [
     *_throughput_kinds("membw", "memory_bandwidth"),
     *_throughput_kinds("network", "network_throughput"),
+    # Written before v5 was collected on the L4. A GPU run has no CPU time
+    # metric, so its guardrail case inflates GPU memory instead.
+    *_throughput_kinds("gpu", "matmul_throughput", guardrail="gpu_memory"),
 ]
 
 

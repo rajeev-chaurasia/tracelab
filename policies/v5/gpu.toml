@@ -1,0 +1,30 @@
+# Written before the v5 corpus was collected on an NVIDIA L4, and not tuned
+# against it. The same thresholds as the v4 rate policies, so a GPU result can
+# be read against them: 3% on FLOP per second, 5% on latency p95, and GPU
+# memory as a guardrail that warns rather than blocks.
+benchmark = "gpu"
+baseline_window = 20
+min_baseline_runs = 5
+min_candidate_runs = 3
+confidence = 0.95
+n_boot = 2000
+max_baseline_noise = 0.05
+confirm_regressions = true
+
+[[metrics]]
+metric = "matmul_throughput"
+statistic = "median"
+threshold = 0.03
+role = "critical"
+
+[[metrics]]
+metric = "iteration_latency"
+statistic = "p95"
+threshold = 0.05
+role = "critical"
+
+[[metrics]]
+metric = "gpu_memory"
+statistic = "median"
+threshold = 0.05
+role = "guardrail"

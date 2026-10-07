@@ -90,5 +90,14 @@ VERSIONS = {
             # disturbed stretch longer than the gap. docs/evidence.md traces them.
             pinned_false_regressions=11,
         ),
+        Version(
+            name="v5",
+            corpus=Path("corpus/v5/store"),
+            policies=Path("policies/v5"),
+            out=Path("evidence/v5"),
+            confirmation_gap=18,
+            comparators=[TRACELAB, ONE_BATCH, *BASELINES],
+            pinned_false_regressions=None,
+        ),
     ]
 }

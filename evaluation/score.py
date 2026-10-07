@@ -233,6 +233,7 @@ def describe_corpus(corpus: dict[str, list[Run]]) -> dict[str, Any]:
         "periodic": "tick_interval",
         "membw": "memory_bandwidth",
         "network": "network_throughput",
+        "gpu": "matmul_throughput",
     }
     median = Statistic.parse("median")
     out: dict[str, Any] = {}
