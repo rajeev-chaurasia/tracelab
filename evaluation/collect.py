@@ -99,24 +99,23 @@ def spec(benchmark: str, revision: str, binary_sha256: str) -> dict[str, Any]:
     }
 
 
-def collect_one(benchmark: str, index: int, revision: str) -> Path:
-    binary_sha256 = hashlib.sha256(WORKLOAD.read_bytes()).hexdigest()
+def write_attempt(
+    store: Path,
+    run_id: str,
+    benchmark: str,
+    revision: str,
+    samples: list[dict[str, Any]],
+    *,
+    binary_sha256: str,
+    started_ns: int,
+    finished_ns: int,
+    preflight: tuple[dict[str, Any], dict[str, Any]],
+    status: str = "SUCCEEDED",
+    status_reason: str = "",
+    rig: dict[str, Any] | None = None,
+) -> Path:
+    """Seal one attempt in the contract's layout, after the reader accepts it."""
     run_spec = spec(benchmark, revision, binary_sha256)
-    run_id = f"corpus-{benchmark}-{index:04d}"
-
-    before = _preflight()
-    lease = time.time_ns()
-    started = time.time_ns()
-    proc = subprocess.run(
-        [sys.executable, "-m", "evaluation.workload", benchmark],
-        capture_output=True,
-        timeout=run_spec["timeout_seconds"],
-    )
-    finished = time.time_ns()
-    after = _preflight()
-
-    samples = [json.loads(line) for line in proc.stdout.decode().splitlines()]
-    ok = proc.returncode == 0
     summary = {
         m["name"]: summarize(
             m["unit"], [s["value"] for s in samples if s["metric"] == m["name"] and not s["warmup"]]
@@ -128,27 +127,26 @@ def collect_one(benchmark: str, index: int, revision: str) -> Path:
         "run_id": run_id,
         "attempt": 1,
         "fence": 0,
-        "status": "SUCCEEDED" if ok else "FAILED",
-        "status_reason": "" if ok else f"exit:{proc.returncode}",
+        "status": status,
+        "status_reason": status_reason,
         "spec_sha256": sha256_hex(run_spec),
         "spec": run_spec,
-        "rig": RIG,
+        "rig": rig or RIG,
         "environment": {
             "git_revision": revision,
             "binary_sha256": binary_sha256,
             "config_sha256": None,
             "governor": "unmanaged",
-            "preflight_before": before,
-            "preflight_after": after,
+            "preflight_before": preflight[0],
+            "preflight_after": preflight[1],
         },
         "timing": {
-            "lease_acquired": _stamp(lease),
-            "started": _stamp(started),
-            "finished": _stamp(finished),
+            "lease_acquired": _stamp(started_ns),
+            "started": _stamp(started_ns),
+            "finished": _stamp(finished_ns),
         },
         "summary": summary,
     }
-
     files = {
         "run.json": (json.dumps(run, indent=2, sort_keys=True) + "\n").encode(),
         "samples.jsonl": "".join(json.dumps(s, sort_keys=True) + "\n" for s in samples).encode(),
@@ -163,13 +161,40 @@ def collect_one(benchmark: str, index: int, revision: str) -> Path:
     files["manifest.json"] = (json.dumps(manifest, indent=2) + "\n").encode()
     validate_attempt(run_id, 1, files)
 
-    attempt = STORE / "runs" / run_id / "attempt-1"
+    attempt = store / "runs" / run_id / "attempt-1"
     attempt.mkdir(parents=True, exist_ok=False)
     # Sealed last, as the contract requires, so an interrupted collection
     # leaves a directory the reader ignores rather than a partial run.
     for path in ("run.json", "samples.jsonl", "manifest.json"):
         (attempt / path).write_bytes(files[path])
     return attempt
+
+
+def collect_one(benchmark: str, index: int, revision: str) -> Path:
+    timeout = spec(benchmark, revision, "")["timeout_seconds"]
+    before = _preflight()
+    started = time.time_ns()
+    proc = subprocess.run(
+        [sys.executable, "-m", "evaluation.workload", benchmark],
+        capture_output=True,
+        timeout=timeout,
+    )
+    finished = time.time_ns()
+    after = _preflight()
+    ok = proc.returncode == 0
+    return write_attempt(
+        STORE,
+        f"corpus-{benchmark}-{index:04d}",
+        benchmark,
+        revision,
+        [json.loads(line) for line in proc.stdout.decode().splitlines()],
+        binary_sha256=hashlib.sha256(WORKLOAD.read_bytes()).hexdigest(),
+        started_ns=started,
+        finished_ns=finished,
+        preflight=(before, after),
+        status="SUCCEEDED" if ok else "FAILED",
+        status_reason="" if ok else f"exit:{proc.returncode}",
+    )
 
 
 def main() -> None:
