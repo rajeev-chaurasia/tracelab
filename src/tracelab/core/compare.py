@@ -9,14 +9,14 @@ from __future__ import annotations
 
 from collections import Counter
 from collections.abc import Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 import numpy as np
 
 from . import jitter, stats
 from .baseline import Selection
 from .compat import blocking, mismatches
-from .policy import BenchmarkPolicy, MetricPolicy, Verdict, classify, rollup
+from .policy import BenchmarkPolicy, MetricPolicy, Verdict, blocking_roles, classify, rollup
 from .run import Run
 from .stats import Estimate, Mode, Statistic
 
@@ -39,6 +39,10 @@ class Comparison:
     metrics: list[MetricResult] = field(default_factory=list)
     excluded: Counter[str] = field(default_factory=Counter)
     drift: list[str] = field(default_factory=list)
+    # Set when the first batch regressed and the policy wants a second batch,
+    # run later, to agree before the verdict may block anything.
+    needs_confirmation: bool = False
+    confirmation: Comparison | None = None
 
 
 def _stop(verdict: Verdict, reason: str, candidates: list[Run], selection: Selection) -> Comparison:
@@ -114,6 +118,15 @@ def _metric(
     return MetricResult(policy, verdict, reason, estimate, noise)
 
 
+def _regressed(result: Comparison, policy: BenchmarkPolicy) -> set[str]:
+    roles = blocking_roles(policy.guardrails_block)
+    return {
+        m.policy.label
+        for m in result.metrics
+        if m.verdict is Verdict.REGRESSION and m.policy.role in roles
+    }
+
+
 def compare(
     candidates: list[Run],
     selection: Selection,
@@ -121,8 +134,65 @@ def compare(
     *,
     seed: int = 0,
     pool: bool = False,
+    confirmation: list[Run] | None = None,
 ) -> Comparison:
-    """Compare. `pool` exists only so the evaluation can run the naive bootstrap."""
+    """Compare, and when the policy says so, require a second batch to agree.
+
+    A regression in one batch can be the machine: a burst of load that hit
+    only the candidate's runs looks, from the samples alone, exactly like
+    slower code. A second batch run later is unlikely to share the burst and
+    certain to share the code. So with `confirm_regressions` on, a first-batch
+    regression blocks only if the confirmation batch independently regresses
+    on at least one of the same blocking metrics against the same baseline.
+
+    `pool` exists only so the evaluation can run the naive bootstrap.
+    """
+    first = _compare_batch(candidates, selection, policy, seed=seed, pool=pool)
+    if first.verdict is not Verdict.REGRESSION or not policy.confirm_regressions:
+        return first
+    if not confirmation:
+        return replace(
+            first,
+            verdict=Verdict.INCONCLUSIVE,
+            reason=f"awaiting a confirmation batch; first batch {first.reason}",
+            needs_confirmation=True,
+        )
+    if (mismatch := blocking(candidates[0], confirmation[0])) is not None:
+        return replace(
+            first,
+            verdict=Verdict.INCOMPARABLE,
+            reason=f"confirmation batch differs from the first on {mismatch}",
+        )
+
+    # A different stream, so the two batches' intervals are not built from
+    # the same random draws.
+    second = _compare_batch(confirmation, selection, policy, seed=seed + 1, pool=pool)
+    agreed = sorted(_regressed(first, policy) & _regressed(second, policy))
+    if second.verdict is Verdict.REGRESSION and agreed:
+        return replace(
+            first,
+            reason=f"confirmed by a second batch on {', '.join(agreed)}; {first.reason}",
+            confirmation=second,
+        )
+    return replace(
+        first,
+        verdict=Verdict.INCONCLUSIVE,
+        reason=(
+            f"first batch regressed but the confirmation batch did not agree "
+            f"({second.verdict.value}: {second.reason})"
+        ),
+        confirmation=second,
+    )
+
+
+def _compare_batch(
+    candidates: list[Run],
+    selection: Selection,
+    policy: BenchmarkPolicy,
+    *,
+    seed: int,
+    pool: bool,
+) -> Comparison:
     if not candidates:
         raise ValueError("nothing to compare: no candidate runs")
     reference = candidates[0]

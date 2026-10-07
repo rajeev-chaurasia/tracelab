@@ -86,6 +86,9 @@ class BenchmarkPolicy(BaseModel):
     n_boot: int = Field(default=2000, ge=100)
     max_baseline_noise: float = Field(default=0.05, gt=0)
     guardrails_block: bool = False
+    # Off by default so that a policy written before confirmation existed
+    # keeps the meaning it was evaluated under.
+    confirm_regressions: bool = False
     jitter: JitterPolicy | None = None
     metrics: list[MetricPolicy] = Field(min_length=1)
 
@@ -107,9 +110,13 @@ def classify(estimate: Estimate, threshold: float) -> Verdict:
     return Verdict.INCONCLUSIVE
 
 
+def blocking_roles(guardrails_block: bool) -> set[MetricClass]:
+    return {MetricClass.CRITICAL} | ({MetricClass.GUARDRAIL} if guardrails_block else set())
+
+
 def rollup(verdicts: list[tuple[MetricClass, Verdict]], guardrails_block: bool) -> Verdict:
     """One verdict for the run, from the strongest signal among its metrics."""
-    blocking = {MetricClass.CRITICAL} | ({MetricClass.GUARDRAIL} if guardrails_block else set())
+    blocking = blocking_roles(guardrails_block)
     counted = [(role, v) for role, v in verdicts if role is not MetricClass.INFORMATIONAL]
 
     if any(v is Verdict.INCOMPARABLE for _, v in counted):

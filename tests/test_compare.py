@@ -204,3 +204,66 @@ def test_series_is_immutable_so_a_derived_metric_cannot_leak_back() -> None:
 
     assert "extra" not in original.metrics
     assert "extra" in derived.metrics
+
+
+CONFIRMING = POLICY.model_copy(update={"confirm_regressions": True})
+
+
+def later(level: float) -> list[Run]:
+    return runs(200, 3, level=level, drift=0.01, seed=9, revision=CANDIDATE)
+
+
+def test_a_first_batch_regression_waits_for_confirmation() -> None:
+    result = compare(candidates(11.0), BASELINE, CONFIRMING)
+
+    assert result.verdict is Verdict.INCONCLUSIVE
+    assert result.needs_confirmation
+    assert result.reason.startswith("awaiting a confirmation batch")
+
+
+def test_a_regression_both_batches_show_is_confirmed() -> None:
+    result = compare(candidates(11.0), BASELINE, CONFIRMING, confirmation=later(11.0))
+
+    assert result.verdict is Verdict.REGRESSION
+    assert result.confirmation is not None
+    assert result.confirmation.verdict is Verdict.REGRESSION
+    assert result.reason.startswith("confirmed by a second batch on latency.median")
+
+
+def test_a_burst_that_hit_only_the_first_batch_is_not_a_regression() -> None:
+    result = compare(candidates(11.0), BASELINE, CONFIRMING, confirmation=later(10.0))
+
+    assert result.verdict is Verdict.INCONCLUSIVE
+    assert "did not agree (PASS" in result.reason
+
+
+def test_confirmation_must_regress_on_the_same_blocking_metric() -> None:
+    policy = CONFIRMING.model_copy(update={"guardrails_block": True})
+    heavy_second = [
+        r.with_metrics({"max_rss": replace(r.metrics["max_rss"], values=(130.0,))})
+        for r in later(10.0)
+    ]
+
+    result = compare(candidates(11.0), BASELINE, policy, confirmation=heavy_second)
+
+    assert result.confirmation is not None
+    assert result.confirmation.verdict is Verdict.REGRESSION
+    assert result.verdict is Verdict.INCONCLUSIVE
+
+
+def test_a_confirmation_batch_on_other_hardware_is_incomparable() -> None:
+    elsewhere = runs(
+        200, 3, level=11.0, drift=0.01, seed=9, revision=CANDIDATE, rig=rig(arch="x86_64")
+    )
+
+    result = compare(candidates(11.0), BASELINE, CONFIRMING, confirmation=elsewhere)
+
+    assert result.verdict is Verdict.INCOMPARABLE
+    assert "rig.arch" in result.reason
+
+
+def test_without_the_policy_flag_confirmation_is_ignored() -> None:
+    result = compare(candidates(11.0), BASELINE, POLICY, confirmation=later(10.0))
+
+    assert result.verdict is Verdict.REGRESSION
+    assert result.confirmation is None
