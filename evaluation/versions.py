@@ -85,7 +85,10 @@ VERSIONS = {
             out=Path("evidence/v4"),
             confirmation_gap=18,
             comparators=[TRACELAB, ONE_BATCH, *BASELINES],
-            pinned_false_regressions=None,
+            # Published as a failure: eleven false regressions, all in windows
+            # whose two batches each caught a machine-wide slow run during a
+            # disturbed stretch longer than the gap. docs/evidence.md traces them.
+            pinned_false_regressions=11,
         ),
     ]
 }

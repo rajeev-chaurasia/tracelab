@@ -1,0 +1,473 @@
+{
+  "comparators": {
+    "fixed_5pct_previous_run": {
+      "by_kind": {
+        "membw/cpu_time_+10%": {
+          "IMPROVEMENT": 4,
+          "REGRESSION": 22,
+          "WARNING": 10
+        },
+        "membw/faster_10%": {
+          "IMPROVEMENT": 18,
+          "REGRESSION": 15,
+          "WARNING": 3
+        },
+        "membw/latency_tail_x1.5": {
+          "IMPROVEMENT": 5,
+          "REGRESSION": 31
+        },
+        "membw/noisy_baseline_same_code": {
+          "IMPROVEMENT": 9,
+          "PASS": 3,
+          "REGRESSION": 23,
+          "WARNING": 1
+        },
+        "membw/same_code": {
+          "IMPROVEMENT": 10,
+          "PASS": 4,
+          "REGRESSION": 22
+        },
+        "membw/slower_10%": {
+          "IMPROVEMENT": 4,
+          "PASS": 1,
+          "REGRESSION": 31
+        },
+        "membw/slower_2%": {
+          "IMPROVEMENT": 9,
+          "PASS": 3,
+          "REGRESSION": 24
+        },
+        "membw/slower_20%": {
+          "IMPROVEMENT": 2,
+          "REGRESSION": 34
+        },
+        "membw/slower_5%": {
+          "IMPROVEMENT": 6,
+          "PASS": 2,
+          "REGRESSION": 28
+        },
+        "network/cpu_time_+10%": {
+          "IMPROVEMENT": 4,
+          "REGRESSION": 21,
+          "WARNING": 11
+        },
+        "network/faster_10%": {
+          "IMPROVEMENT": 20,
+          "REGRESSION": 14,
+          "WARNING": 2
+        },
+        "network/latency_tail_x1.5": {
+          "IMPROVEMENT": 3,
+          "PASS": 1,
+          "REGRESSION": 32
+        },
+        "network/noisy_baseline_same_code": {
+          "IMPROVEMENT": 9,
+          "PASS": 2,
+          "REGRESSION": 24,
+          "WARNING": 1
+        },
+        "network/same_code": {
+          "IMPROVEMENT": 13,
+          "PASS": 2,
+          "REGRESSION": 21
+        },
+        "network/slower_10%": {
+          "IMPROVEMENT": 2,
+          "REGRESSION": 34
+        },
+        "network/slower_2%": {
+          "IMPROVEMENT": 10,
+          "PASS": 4,
+          "REGRESSION": 22
+        },
+        "network/slower_20%": {
+          "IMPROVEMENT": 2,
+          "REGRESSION": 34
+        },
+        "network/slower_5%": {
+          "IMPROVEMENT": 7,
+          "PASS": 5,
+          "REGRESSION": 24
+        }
+      },
+      "cases": 648,
+      "correct": 325,
+      "false_improvements": 99,
+      "false_regressions": 208,
+      "regressions_caught": 248,
+      "regressions_inconclusive": 0,
+      "regressions_to_catch": 288,
+      "same_code_cases": 72,
+      "same_code_false_regressions": 43
+    },
+    "fixed_5pct_window": {
+      "by_kind": {
+        "membw/cpu_time_+10%": {
+          "IMPROVEMENT": 3,
+          "REGRESSION": 17,
+          "WARNING": 16
+        },
+        "membw/faster_10%": {
+          "IMPROVEMENT": 20,
+          "REGRESSION": 11,
+          "WARNING": 5
+        },
+        "membw/latency_tail_x1.5": {
+          "IMPROVEMENT": 7,
+          "PASS": 2,
+          "REGRESSION": 27
+        },
+        "membw/noisy_baseline_same_code": {
+          "IMPROVEMENT": 17,
+          "PASS": 1,
+          "REGRESSION": 16,
+          "WARNING": 2
+        },
+        "membw/same_code": {
+          "IMPROVEMENT": 16,
+          "PASS": 3,
+          "REGRESSION": 17
+        },
+        "membw/slower_10%": {
+          "IMPROVEMENT": 3,
+          "REGRESSION": 33
+        },
+        "membw/slower_2%": {
+          "IMPROVEMENT": 13,
+          "PASS": 3,
+          "REGRESSION": 20
+        },
+        "membw/slower_20%": {
+          "REGRESSION": 36
+        },
+        "membw/slower_5%": {
+          "IMPROVEMENT": 11,
+          "PASS": 2,
+          "REGRESSION": 23
+        },
+        "network/cpu_time_+10%": {
+          "REGRESSION": 14,
+          "WARNING": 22
+        },
+        "network/faster_10%": {
+          "IMPROVEMENT": 29,
+          "REGRESSION": 5,
+          "WARNING": 2
+        },
+        "network/latency_tail_x1.5": {
+          "IMPROVEMENT": 5,
+          "PASS": 1,
+          "REGRESSION": 30
+        },
+        "network/noisy_baseline_same_code": {
+          "IMPROVEMENT": 20,
+          "PASS": 3,
+          "REGRESSION": 12,
+          "WARNING": 1
+        },
+        "network/same_code": {
+          "IMPROVEMENT": 18,
+          "PASS": 4,
+          "REGRESSION": 14
+        },
+        "network/slower_10%": {
+          "REGRESSION": 36
+        },
+        "network/slower_2%": {
+          "IMPROVEMENT": 15,
+          "PASS": 6,
+          "REGRESSION": 15
+        },
+        "network/slower_20%": {
+          "REGRESSION": 36
+        },
+        "network/slower_5%": {
+          "IMPROVEMENT": 10,
+          "PASS": 5,
+          "REGRESSION": 21
+        }
+      },
+      "cases": 648,
+      "correct": 349,
+      "false_improvements": 138,
+      "false_regressions": 141,
+      "regressions_caught": 242,
+      "regressions_inconclusive": 0,
+      "regressions_to_catch": 288,
+      "same_code_cases": 72,
+      "same_code_false_regressions": 31
+    },
+    "pooled_bootstrap": {
+      "by_kind": {
+        "membw/cpu_time_+10%": {
+          "INCONCLUSIVE": 33,
+          "REGRESSION": 3
+        },
+        "membw/faster_10%": {
+          "INCONCLUSIVE": 34,
+          "REGRESSION": 2
+        },
+        "membw/latency_tail_x1.5": {
+          "INCONCLUSIVE": 33,
+          "REGRESSION": 3
+        },
+        "membw/noisy_baseline_same_code": {
+          "INCONCLUSIVE": 35,
+          "REGRESSION": 1
+        },
+        "membw/same_code": {
+          "INCONCLUSIVE": 33,
+          "REGRESSION": 3
+        },
+        "membw/slower_10%": {
+          "INCONCLUSIVE": 27,
+          "REGRESSION": 9
+        },
+        "membw/slower_2%": {
+          "INCONCLUSIVE": 32,
+          "REGRESSION": 4
+        },
+        "membw/slower_20%": {
+          "INCONCLUSIVE": 27,
+          "REGRESSION": 9
+        },
+        "membw/slower_5%": {
+          "INCONCLUSIVE": 28,
+          "REGRESSION": 8
+        },
+        "network/cpu_time_+10%": {
+          "INCONCLUSIVE": 31,
+          "REGRESSION": 5
+        },
+        "network/faster_10%": {
+          "INCONCLUSIVE": 33,
+          "REGRESSION": 3
+        },
+        "network/latency_tail_x1.5": {
+          "INCONCLUSIVE": 31,
+          "REGRESSION": 5
+        },
+        "network/noisy_baseline_same_code": {
+          "INCONCLUSIVE": 36
+        },
+        "network/same_code": {
+          "INCONCLUSIVE": 31,
+          "REGRESSION": 5
+        },
+        "network/slower_10%": {
+          "INCONCLUSIVE": 9,
+          "REGRESSION": 27
+        },
+        "network/slower_2%": {
+          "INCONCLUSIVE": 25,
+          "REGRESSION": 11
+        },
+        "network/slower_20%": {
+          "INCONCLUSIVE": 9,
+          "REGRESSION": 27
+        },
+        "network/slower_5%": {
+          "INCONCLUSIVE": 14,
+          "REGRESSION": 22
+        }
+      },
+      "cases": 648,
+      "correct": 181,
+      "false_improvements": 0,
+      "false_regressions": 37,
+      "regressions_caught": 110,
+      "regressions_inconclusive": 178,
+      "regressions_to_catch": 288,
+      "same_code_cases": 72,
+      "same_code_false_regressions": 8
+    },
+    "tracelab": {
+      "by_kind": {
+        "membw/cpu_time_+10%": {
+          "INCONCLUSIVE": 35,
+          "REGRESSION": 1
+        },
+        "membw/faster_10%": {
+          "INCONCLUSIVE": 36
+        },
+        "membw/latency_tail_x1.5": {
+          "INCONCLUSIVE": 36
+        },
+        "membw/noisy_baseline_same_code": {
+          "INCONCLUSIVE": 36
+        },
+        "membw/same_code": {
+          "INCONCLUSIVE": 35,
+          "REGRESSION": 1
+        },
+        "membw/slower_10%": {
+          "INCONCLUSIVE": 29,
+          "REGRESSION": 7
+        },
+        "membw/slower_2%": {
+          "INCONCLUSIVE": 34,
+          "REGRESSION": 2
+        },
+        "membw/slower_20%": {
+          "INCONCLUSIVE": 27,
+          "REGRESSION": 9
+        },
+        "membw/slower_5%": {
+          "INCONCLUSIVE": 31,
+          "REGRESSION": 5
+        },
+        "network/cpu_time_+10%": {
+          "INCONCLUSIVE": 35,
+          "REGRESSION": 1
+        },
+        "network/faster_10%": {
+          "INCONCLUSIVE": 36
+        },
+        "network/latency_tail_x1.5": {
+          "INCONCLUSIVE": 35,
+          "REGRESSION": 1
+        },
+        "network/noisy_baseline_same_code": {
+          "INCONCLUSIVE": 36
+        },
+        "network/same_code": {
+          "INCONCLUSIVE": 35,
+          "REGRESSION": 1
+        },
+        "network/slower_10%": {
+          "INCONCLUSIVE": 11,
+          "REGRESSION": 25
+        },
+        "network/slower_2%": {
+          "INCONCLUSIVE": 31,
+          "REGRESSION": 5
+        },
+        "network/slower_20%": {
+          "INCONCLUSIVE": 9,
+          "REGRESSION": 27
+        },
+        "network/slower_5%": {
+          "INCONCLUSIVE": 19,
+          "REGRESSION": 17
+        }
+      },
+      "cases": 648,
+      "correct": 163,
+      "false_improvements": 0,
+      "false_regressions": 11,
+      "regressions_caught": 91,
+      "regressions_inconclusive": 197,
+      "regressions_to_catch": 288,
+      "same_code_cases": 72,
+      "same_code_false_regressions": 2
+    },
+    "tracelab_one_batch": {
+      "by_kind": {
+        "membw/cpu_time_+10%": {
+          "INCONCLUSIVE": 35,
+          "REGRESSION": 1
+        },
+        "membw/faster_10%": {
+          "INCONCLUSIVE": 35,
+          "REGRESSION": 1
+        },
+        "membw/latency_tail_x1.5": {
+          "INCONCLUSIVE": 35,
+          "REGRESSION": 1
+        },
+        "membw/noisy_baseline_same_code": {
+          "INCONCLUSIVE": 36
+        },
+        "membw/same_code": {
+          "INCONCLUSIVE": 35,
+          "REGRESSION": 1
+        },
+        "membw/slower_10%": {
+          "INCONCLUSIVE": 29,
+          "REGRESSION": 7
+        },
+        "membw/slower_2%": {
+          "INCONCLUSIVE": 34,
+          "REGRESSION": 2
+        },
+        "membw/slower_20%": {
+          "INCONCLUSIVE": 27,
+          "REGRESSION": 9
+        },
+        "membw/slower_5%": {
+          "INCONCLUSIVE": 31,
+          "REGRESSION": 5
+        },
+        "network/cpu_time_+10%": {
+          "INCONCLUSIVE": 33,
+          "REGRESSION": 3
+        },
+        "network/faster_10%": {
+          "INCONCLUSIVE": 34,
+          "REGRESSION": 2
+        },
+        "network/latency_tail_x1.5": {
+          "INCONCLUSIVE": 33,
+          "REGRESSION": 3
+        },
+        "network/noisy_baseline_same_code": {
+          "INCONCLUSIVE": 36
+        },
+        "network/same_code": {
+          "INCONCLUSIVE": 33,
+          "REGRESSION": 3
+        },
+        "network/slower_10%": {
+          "INCONCLUSIVE": 10,
+          "REGRESSION": 26
+        },
+        "network/slower_2%": {
+          "INCONCLUSIVE": 28,
+          "REGRESSION": 8
+        },
+        "network/slower_20%": {
+          "INCONCLUSIVE": 9,
+          "REGRESSION": 27
+        },
+        "network/slower_5%": {
+          "INCONCLUSIVE": 18,
+          "REGRESSION": 18
+        }
+      },
+      "cases": 648,
+      "correct": 168,
+      "false_improvements": 0,
+      "false_regressions": 21,
+      "regressions_caught": 96,
+      "regressions_inconclusive": 192,
+      "regressions_to_catch": 288,
+      "same_code_cases": 72,
+      "same_code_false_regressions": 4
+    }
+  },
+  "corpus": {
+    "membw": {
+      "between_run_noise_of_median": 0.11604310194891809,
+      "first_started": "2026-10-07T22:28:29.260869+00:00",
+      "last_started": "2026-10-07T22:29:33.204999+00:00",
+      "median_within_run_cv": 0.10669371347760984,
+      "metric": "memory_bandwidth",
+      "runs": 150,
+      "samples_per_run": [
+        30
+      ]
+    },
+    "network": {
+      "between_run_noise_of_median": 0.03438512252215754,
+      "first_started": "2026-10-07T22:28:29.572053+00:00",
+      "last_started": "2026-10-07T22:29:33.496204+00:00",
+      "median_within_run_cv": 0.22002421870173958,
+      "metric": "network_throughput",
+      "runs": 150,
+      "samples_per_run": [
+        30
+      ]
+    }
+  }
+}

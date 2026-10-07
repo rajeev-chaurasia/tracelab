@@ -1,0 +1,126 @@
+{
+  "attempt": 1,
+  "environment": {
+    "binary_sha256": "449a1a8b2574f7b960655c5f769ffad9d783e2848cff15e7a9c9771a22eb7a03",
+    "config_sha256": null,
+    "git_revision": "52622a3981bb9df8fbfbd0aa3b00bc2676b4ff9b",
+    "governor": "unmanaged",
+    "preflight_after": {
+      "cpu_util": null,
+      "gpu_util": null,
+      "load1": 8.61962890625,
+      "mem_free": null,
+      "temp_c": null
+    },
+    "preflight_before": {
+      "cpu_util": null,
+      "gpu_util": null,
+      "load1": 8.61962890625,
+      "mem_free": null,
+      "temp_c": null
+    }
+  },
+  "fence": 0,
+  "rig": {
+    "arch": "arm64",
+    "cpu_cores": 10,
+    "cpu_model": "Apple M4",
+    "driver_version": "",
+    "emulated": false,
+    "firmware": "",
+    "gpu_memory_bytes": 0,
+    "gpu_model": "",
+    "gpu_vendor": "",
+    "hardware_class": "laptop-arm64",
+    "kernel": "25.5.0",
+    "mem_bytes": 17179869184,
+    "os": "darwin",
+    "rig_id": "dev-laptop"
+  },
+  "run_id": "corpus-membw-0061",
+  "schema_version": "benchgrid.run/v1",
+  "spec": {
+    "artifacts": {
+      "binary_sha256": "449a1a8b2574f7b960655c5f769ffad9d783e2848cff15e7a9c9771a22eb7a03"
+    },
+    "benchmark": "membw",
+    "command": [
+      "python",
+      "-m",
+      "evaluation.workload",
+      "membw"
+    ],
+    "environment": {},
+    "metrics": [
+      {
+        "direction": "lower_is_better",
+        "name": "iteration_latency",
+        "unit": "ns"
+      },
+      {
+        "direction": "higher_is_better",
+        "name": "memory_bandwidth",
+        "unit": "ops_per_s"
+      },
+      {
+        "direction": "lower_is_better",
+        "name": "cpu_time",
+        "unit": "ns"
+      }
+    ],
+    "repetitions": 30,
+    "requirements": {
+      "arch": "arm64",
+      "hardware_class": "laptop-arm64"
+    },
+    "revision": "52622a3981bb9df8fbfbd0aa3b00bc2676b4ff9b",
+    "timeout_seconds": 60,
+    "warmups": 3
+  },
+  "spec_sha256": "96540dd5a970d77444d3236ae34cb245ae5241a904829d834f600c825bd695e9",
+  "status": "SUCCEEDED",
+  "status_reason": "",
+  "summary": {
+    "cpu_time": {
+      "cv": 0.24481093571849502,
+      "mad": 307500.0,
+      "mean": 5011633.333333333,
+      "median": 4488500.0,
+      "n": 30,
+      "p90": 6894100.0,
+      "p95": 7479950.0,
+      "p99": 8611910.000000002,
+      "stddev": 1226902.6458113336,
+      "unit": "ns"
+    },
+    "iteration_latency": {
+      "cv": 0.4225255131217028,
+      "mad": 340625.0,
+      "mean": 5523387.6,
+      "median": 4516875.5,
+      "n": 30,
+      "p90": 8574607.700000003,
+      "p95": 10513324.85,
+      "p99": 12764233.570000002,
+      "stddev": 2333772.1798600503,
+      "unit": "ns"
+    },
+    "memory_bandwidth": {
+      "cv": 0.24753939395563793,
+      "mad": 5777098937.312386,
+      "mean": 64171856009.209755,
+      "median": 70847126352.92657,
+      "n": 30,
+      "p90": 76472549248.3853,
+      "p95": 77105690224.16777,
+      "p99": 77432567119.3742,
+      "stddev": 15885062345.528244,
+      "unit": "ops_per_s"
+    }
+  },
+  "timing": {
+    "finished": "2026-10-07T22:28:54.605421000Z",
+    "lease_acquired": "2026-10-07T22:28:54.317492000Z",
+    "started": "2026-10-07T22:28:54.317492000Z"
+  }
+}

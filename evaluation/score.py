@@ -228,7 +228,12 @@ def _counts(rows: list[dict[str, Any]]) -> dict[str, int]:
 
 def describe_corpus(corpus: dict[str, list[Run]]) -> dict[str, Any]:
     """How noisy the machine actually was, so the claim's premise can be checked."""
-    metric = {"matmul": "iteration_latency", "periodic": "tick_interval"}
+    metric = {
+        "matmul": "iteration_latency",
+        "periodic": "tick_interval",
+        "membw": "memory_bandwidth",
+        "network": "network_throughput",
+    }
     median = Statistic.parse("median")
     out: dict[str, Any] = {}
     for name, runs in sorted(corpus.items()):

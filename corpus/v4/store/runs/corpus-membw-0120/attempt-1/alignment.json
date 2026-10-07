@@ -1,0 +1,1 @@
+{"error_bound_ns": 633.0, "mappings": {"wall": {"max_residual_ns": 612.0, "max_uncertainty_ns": 21, "readings": 4, "slope": 0.9999960162494442}}, "samples": {"process": 105, "system": 2, "workload": 99}}
