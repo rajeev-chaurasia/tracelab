@@ -1,0 +1,29 @@
+# Written before the v4 corpus was collected, and not tuned against it. The
+# first policy judged on a rate, where higher is better; the direction comes
+# from the metric declaration in each run's spec, not from this file.
+benchmark = "membw"
+baseline_window = 20
+min_baseline_runs = 5
+min_candidate_runs = 3
+confidence = 0.95
+n_boot = 2000
+max_baseline_noise = 0.05
+confirm_regressions = true
+
+[[metrics]]
+metric = "memory_bandwidth"
+statistic = "median"
+threshold = 0.03
+role = "critical"
+
+[[metrics]]
+metric = "iteration_latency"
+statistic = "p95"
+threshold = 0.05
+role = "critical"
+
+[[metrics]]
+metric = "cpu_time"
+statistic = "median"
+threshold = 0.05
+role = "guardrail"

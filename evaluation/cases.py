@@ -137,6 +137,22 @@ def _emulated(then: Transform) -> Transform:
     return apply
 
 
+def _slower(rate: str, factor: float) -> Transform:
+    """The same work taking `factor` times as long: latency up, its rate down.
+
+    Both metrics come from one measurement, so a real slowdown moves them
+    together; injecting it into only one would be a change no code makes.
+    """
+
+    def apply(
+        base: list[Run], cand: list[Run], _: np.random.Generator
+    ) -> tuple[list[Run], list[Run]]:
+        cand = _map(cand, LAT, lambda v: v * factor)
+        return base, _map(cand, rate, lambda v: v / factor)
+
+    return apply
+
+
 def _same(base: list[Run], cand: list[Run], _: np.random.Generator) -> tuple[list[Run], list[Run]]:
     return base, cand
 
@@ -205,6 +221,38 @@ KINDS: list[Kind] = [
 ]
 
 
+def _throughput_kinds(benchmark: str, rate: str) -> list[Kind]:
+    """The cases for a benchmark judged on a rate, where higher is better.
+
+    Written before v4 was collected, with the same thresholds as the policies
+    in policies/v4: 3% on the rate's median, 5% on latency p95.
+    """
+    return [
+        Kind("same_code", benchmark, NO, False, _same),
+        Kind("slower_2%", benchmark, frozenset({V.PASS, V.WARNING}), False, _slower(rate, 1.02)),
+        Kind("slower_5%", benchmark, frozenset({V.REGRESSION}), True, _slower(rate, 1.05)),
+        Kind("slower_10%", benchmark, frozenset({V.REGRESSION}), True, _slower(rate, 1.10)),
+        Kind("slower_20%", benchmark, frozenset({V.REGRESSION}), True, _slower(rate, 1.20)),
+        Kind("faster_10%", benchmark, frozenset({V.IMPROVEMENT}), False, _slower(rate, 1 / 1.10)),
+        Kind("latency_tail_x1.5", benchmark, frozenset({V.REGRESSION}), True, _tail(LAT, 1.5)),
+        Kind("cpu_time_+10%", benchmark, frozenset({V.WARNING}), False, _scale(CPU, 1.10)),
+        Kind(
+            "noisy_baseline_same_code",
+            benchmark,
+            frozenset({V.INCONCLUSIVE, V.PASS}),
+            False,
+            _noisy_baseline(rate, 0.08),
+        ),
+    ]
+
+
+CPU = "cpu_time"
+KINDS += [
+    *_throughput_kinds("membw", "memory_bandwidth"),
+    *_throughput_kinds("network", "network_throughput"),
+]
+
+
 def cases(corpus: dict[str, list[Run]], confirmation_gap: int | None = None) -> Iterator[Case]:
     """Every window of every kind.
 
@@ -215,6 +263,11 @@ def cases(corpus: dict[str, list[Run]], confirmation_gap: int | None = None) -> 
     for the baseline.
     """
     for kind in KINDS:
+        # Each corpus measures some benchmarks; kinds for the others do not
+        # apply, and skipping them leaves the earlier versions' cases as they
+        # were, in the same order.
+        if kind.benchmark not in corpus:
+            continue
         runs = corpus[kind.benchmark]
         tail = 0 if confirmation_gap is None else confirmation_gap + kind.candidates
         last = len(runs) - BASELINE_RUNS - CANDIDATE_RUNS - tail

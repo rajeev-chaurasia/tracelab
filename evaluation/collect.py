@@ -265,9 +265,10 @@ def main() -> None:
         help="benchmarks to interleave at each index",
     )
     parser.add_argument(
-        "--trace",
-        action="store_true",
-        help="record every run with all collectors and seal its aligned trace in the artifact",
+        "--trace-every",
+        type=int,
+        default=0,
+        help="record every Nth index with all collectors and seal its aligned trace; 0 for none",
     )
     args = parser.parse_args()
     revision = subprocess.run(
@@ -281,7 +282,8 @@ def main() -> None:
                 _switch(hogs, under_contention(index), index, log)
             # Interleaved, so slow drift in the machine lands in both corpora alike.
             for benchmark in args.benchmarks:
-                path = collect_one(benchmark, index, revision, args.store, args.trace)
+                traced = args.trace_every > 0 and index % args.trace_every == 0
+                path = collect_one(benchmark, index, revision, args.store, traced)
                 print(path, flush=True)
     finally:
         if hogs.running:

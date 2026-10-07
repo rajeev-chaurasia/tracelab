@@ -197,3 +197,23 @@ def test_a_version_with_its_decisions_deleted_fails_validation(
     monkeypatch.setitem(versions.VERSIONS, "v3", gone)
 
     assert validate_evidence.main(["v3"]) == 1
+
+
+def test_a_slowdown_moves_latency_up_and_its_rate_down_together() -> None:
+    cand = [
+        run(i, metrics={c.LAT: [100.0, 200.0], "memory_bandwidth": [10.0, 5.0]}) for i in range(2)
+    ]
+
+    _, slower = c._slower("memory_bandwidth", 1.25)([], cand, RNG)
+
+    assert slower[0].metrics[c.LAT].values == pytest.approx((125.0, 250.0))
+    assert slower[0].metrics["memory_bandwidth"].values == pytest.approx((8.0, 4.0))
+
+
+def test_throughput_kinds_exist_for_each_rate_benchmark_and_skip_absent_ones() -> None:
+    names = {(k.benchmark, k.name) for k in c.KINDS}
+    corpus = {"matmul": [run(i, metrics={c.LAT: [1.0], c.RSS: [1.0]}) for i in range(30)]}
+
+    assert ("membw", "slower_5%") in names
+    assert ("network", "faster_10%") in names
+    assert {case.kind.benchmark for case in c.cases(corpus)} == {"matmul"}

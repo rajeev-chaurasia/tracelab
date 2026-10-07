@@ -78,5 +78,14 @@ VERSIONS = {
             pinned_false_regressions=3,
             exposure=lambda start: exposure(start).value,
         ),
+        Version(
+            name="v4",
+            corpus=Path("corpus/v4/store"),
+            policies=Path("policies/v4"),
+            out=Path("evidence/v4"),
+            confirmation_gap=18,
+            comparators=[TRACELAB, ONE_BATCH, *BASELINES],
+            pinned_false_regressions=None,
+        ),
     ]
 }
