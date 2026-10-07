@@ -1,0 +1,92 @@
+{
+  "attempt": 1,
+  "environment": {
+    "binary_sha256": "b2b3873048126e5f99667465f958cd04e457851f5382fee6f38426fd10bbd8ad",
+    "config_sha256": null,
+    "git_revision": "404873da48d3b004ccfa68b1af09184c63f53a7d",
+    "governor": "unmanaged",
+    "preflight_after": {
+      "cpu_util": null,
+      "gpu_util": null,
+      "load1": 4.81494140625,
+      "mem_free": null,
+      "temp_c": null
+    },
+    "preflight_before": {
+      "cpu_util": null,
+      "gpu_util": null,
+      "load1": 5.1474609375,
+      "mem_free": null,
+      "temp_c": null
+    }
+  },
+  "fence": 0,
+  "rig": {
+    "arch": "arm64",
+    "cpu_cores": 10,
+    "cpu_model": "Apple M4",
+    "driver_version": "",
+    "emulated": false,
+    "firmware": "",
+    "gpu_memory_bytes": 0,
+    "gpu_model": "",
+    "gpu_vendor": "",
+    "hardware_class": "laptop-arm64",
+    "kernel": "25.5.0",
+    "mem_bytes": 17179869184,
+    "os": "darwin",
+    "rig_id": "dev-laptop"
+  },
+  "run_id": "corpus-periodic-0093",
+  "schema_version": "benchgrid.run/v1",
+  "spec": {
+    "artifacts": {
+      "binary_sha256": "b2b3873048126e5f99667465f958cd04e457851f5382fee6f38426fd10bbd8ad"
+    },
+    "benchmark": "periodic",
+    "command": [
+      "python",
+      "-m",
+      "evaluation.workload",
+      "periodic"
+    ],
+    "environment": {},
+    "metrics": [
+      {
+        "direction": "lower_is_better",
+        "name": "tick_interval",
+        "unit": "ns"
+      }
+    ],
+    "repetitions": 150,
+    "requirements": {
+      "arch": "arm64",
+      "hardware_class": "laptop-arm64"
+    },
+    "revision": "404873da48d3b004ccfa68b1af09184c63f53a7d",
+    "timeout_seconds": 60,
+    "warmups": 10
+  },
+  "spec_sha256": "c13d719db5588eff9244627315b47ecb1a058f91298bafe5653b80a04af3c783",
+  "status": "SUCCEEDED",
+  "status_reason": "",
+  "summary": {
+    "tick_interval": {
+      "cv": 0.1888851727594747,
+      "mad": 2696416.5,
+      "mean": 19957306.946666665,
+      "median": 19360854.0,
+      "n": 150,
+      "p90": 25203870.9,
+      "p95": 26091195.35,
+      "p99": 27844072.669999994,
+      "stddev": 3769639.3704349976,
+      "unit": "ns"
+    }
+  },
+  "timing": {
+    "finished": "2026-10-06T23:59:43.319409000Z",
+    "lease_acquired": "2026-10-06T23:59:40.029509000Z",
+    "started": "2026-10-06T23:59:40.029511000Z"
+  }
+}

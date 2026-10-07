@@ -13,7 +13,7 @@ Four kinds of check, in the order a skeptic would want them:
    does, the corpus is too quiet to fool anybody and a clean TraceLab row
    would mean nothing.
 
-    uv run python script/validate_evidence.py
+    uv run python -m script.validate_evidence
 """
 
 from __future__ import annotations
