@@ -9,7 +9,8 @@ The rig is this development machine, described as what it is. It is not a
 benchmark rig and nothing here claims otherwise: there is no governor control,
 no thermal gate and no isolation, which is exactly why its noise is useful.
 
-    uv run python -m evaluation.collect --runs 150
+    uv run python -m evaluation.collect --runs 150 --store corpus/v2/store
+    uv run python -m evaluation.collect --runs 273 --store corpus/v3/store --contention
 """
 
 from __future__ import annotations
@@ -26,6 +27,7 @@ from pathlib import Path
 from typing import Any
 
 from evaluation import workload
+from evaluation.contention import Hogs, under_contention
 from tracelab.core.canon import sha256_hex
 from tracelab.core.contract import validate_attempt
 from tracelab.core.describe import summarize
@@ -170,7 +172,7 @@ def write_attempt(
     return attempt
 
 
-def collect_one(benchmark: str, index: int, revision: str) -> Path:
+def collect_one(benchmark: str, index: int, revision: str, store: Path = STORE) -> Path:
     timeout = spec(benchmark, revision, "")["timeout_seconds"]
     before = _preflight()
     started = time.time_ns()
@@ -183,7 +185,7 @@ def collect_one(benchmark: str, index: int, revision: str) -> Path:
     after = _preflight()
     ok = proc.returncode == 0
     return write_attempt(
-        STORE,
+        store,
         f"corpus-{benchmark}-{index:04d}",
         benchmark,
         revision,
@@ -199,17 +201,46 @@ def collect_one(benchmark: str, index: int, revision: str) -> Path:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--runs", type=int, default=100)
-    parser.add_argument("--start", type=int, default=0)
+    parser.add_argument("--runs", type=int, default=150)
+    parser.add_argument("--store", type=Path, default=STORE)
+    parser.add_argument(
+        "--contention",
+        action="store_true",
+        help="start and stop CPU contention on the schedule in evaluation/contention.py",
+    )
     args = parser.parse_args()
     revision = subprocess.run(
         ["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True
     ).stdout.strip()
-    for index in range(args.start, args.start + args.runs):
-        # Interleaved, so slow drift in the machine lands in both corpora alike.
-        for benchmark in ("matmul", "periodic"):
-            path = collect_one(benchmark, index, revision)
-            print(path, flush=True)
+    hogs = Hogs()
+    log = args.store.parent / "contention.jsonl"
+    try:
+        for index in range(args.runs):
+            if args.contention:
+                _switch(hogs, under_contention(index), index, log)
+            # Interleaved, so slow drift in the machine lands in both corpora alike.
+            for benchmark in ("matmul", "periodic"):
+                path = collect_one(benchmark, index, revision, args.store)
+                print(path, flush=True)
+    finally:
+        if hogs.running:
+            _switch(hogs, False, args.runs, log)
+
+
+def _switch(hogs: Hogs, want: bool, index: int, log: Path) -> None:
+    if want == hogs.running:
+        return
+    if want:
+        hogs.start()
+        # Let every busy loop reach the scheduler before the first measured
+        # run, so a burst's first run is contended like its last.
+        time.sleep(1)
+    else:
+        hogs.stop()
+    event = {"event": "start" if want else "stop", "before_index": index, "t_ns": time.time_ns()}
+    log.parent.mkdir(parents=True, exist_ok=True)
+    with log.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(event, sort_keys=True) + "\n")
 
 
 if __name__ == "__main__":
