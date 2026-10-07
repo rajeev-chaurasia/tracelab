@@ -5,8 +5,8 @@ create-blocks-from openmetrics` turns a file like this one into storage blocks
 instead, so every run lands at the moment it actually ran and Grafana can
 draw the history of a corpus collected yesterday. Each run contributes one
 point per series: its median, p95 and p99 per metric, its status, and its
-preflight load. Evaluation results come from the published summaries, stamped
-at the time of export.
+preflight load. Evaluation results come from the published summaries, each
+stamped when its corpus finished collecting.
 """
 
 from __future__ import annotations
@@ -81,8 +81,14 @@ def _families(lake: Path, evidence: dict[str, Path], now_s: float) -> dict[str, 
                 f"{labels} {float(np.quantile(arr, q))!r} {t:.3f}"
             )
 
+    # An evaluation describes its corpus, so it is stamped when that corpus
+    # finished collecting, which keeps it inside any window showing the runs.
+    corpus_end: dict[str, float] = {}
+    for r in runs:
+        corpus_end[r["corpus"]] = max(corpus_end.get(r["corpus"], 0.0), r["started_at"].timestamp())
     for version, summary_path in sorted(evidence.items()):
         summary: dict[str, Any] = json.loads(summary_path.read_text())
+        stamp = corpus_end.get(version, now_s)
         for comparator, s in sorted(summary["comparators"].items()):
             labels = _labels(version=version, comparator=comparator)
             for field in (
@@ -91,7 +97,7 @@ def _families(lake: Path, evidence: dict[str, Path], now_s: float) -> dict[str, 
                 "regressions_to_catch",
                 "cases",
             ):
-                families[f"tracelab_eval_{field}"].append(f"{labels} {s[field]} {now_s:.3f}")
+                families[f"tracelab_eval_{field}"].append(f"{labels} {s[field]} {stamp:.3f}")
     return families
 
 

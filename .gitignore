@@ -12,3 +12,4 @@ coverage.xml
 
 # A local lake built by the CLI. The committed evidence lives in evidence/.
 /lake/
+/deploy/data/

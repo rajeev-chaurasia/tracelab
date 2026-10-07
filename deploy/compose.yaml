@@ -1,0 +1,35 @@
+# Local dashboards over the published corpora.
+#
+#   script/dashboards.sh     builds the lake, backfills Prometheus, starts this
+#
+# Prometheus serves blocks backfilled from the lake by promtool, so every run
+# sits at the time it actually ran. Grafana is provisioned with the data source
+# and dashboards in this directory and allows anonymous viewing, because it
+# only ever listens on localhost.
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      # Long enough that a corpus collected weeks ago is still served.
+      - --storage.tsdb.retention.time=3650d
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./data/prometheus:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+  grafana:
+    image: grafana/grafana:latest
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_AUTH_DISABLE_LOGIN_FORM: "false"
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/tracelab.json
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      - prometheus

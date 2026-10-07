@@ -1,0 +1,345 @@
+{
+  "uid": "tracelab",
+  "title": "TraceLab",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": false,
+  "time": {
+    "from": "2026-10-06T23:50:00.000Z",
+    "to": "2026-10-07T04:12:00.000Z"
+  },
+  "timezone": "browser",
+  "tags": [
+    "tracelab"
+  ],
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 3
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "**TraceLab.** Every point is one real benchmark run, placed at the time it ran. Corpora v1, v2 and v3 are the published evaluations; v3 was collected under scheduled CPU contention. Evaluation panels read the published summaries."
+      }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Iteration latency, median per run",
+      "description": "Median of each run's measured iterations. The v3 points that jump are runs under a scheduled burst.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 3,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ns",
+          "custom": {
+            "drawStyle": "points",
+            "pointSize": 4,
+            "showPoints": "always"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "tracelab_run_metric_p50{metric=\"iteration_latency\"}",
+          "legendFormat": "{{corpus}} {{benchmark}}",
+          "interval": "1s"
+        }
+      ],
+      "maxDataPoints": 10000
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Iteration latency, p95 per run",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 3,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ns",
+          "custom": {
+            "drawStyle": "points",
+            "pointSize": 4,
+            "showPoints": "always"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "tracelab_run_metric_p95{metric=\"iteration_latency\"}",
+          "legendFormat": "{{corpus}} {{benchmark}}",
+          "interval": "1s"
+        }
+      ],
+      "maxDataPoints": 10000
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Periodic loop interval, p99 per run",
+      "description": "The 20 ms loop's worst ticks. v3's step around run 120 is the unscheduled shift traced in docs/evidence.md.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 11,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ns",
+          "custom": {
+            "drawStyle": "points",
+            "pointSize": 4,
+            "showPoints": "always"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "tracelab_run_metric_p99{metric=\"tick_interval\"}",
+          "legendFormat": "{{corpus}}",
+          "interval": "1s"
+        }
+      ],
+      "maxDataPoints": 10000
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Preflight load average",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 11,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "points",
+            "pointSize": 4,
+            "showPoints": "always"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "tracelab_run_load1",
+          "legendFormat": "{{corpus}} {{benchmark}}",
+          "interval": "1s"
+        }
+      ],
+      "maxDataPoints": 10000
+    },
+    {
+      "id": 6,
+      "type": "bargauge",
+      "title": "False regressions by comparator",
+      "description": "From evidence/*/summary.json. v1 and v3 are published failures, pinned by the validator.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 19,
+        "w": 12,
+        "h": 12
+      },
+      "options": {
+        "displayMode": "gradient",
+        "orientation": "horizontal",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "values": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "min": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "last_over_time(tracelab_eval_false_regressions[3650d])",
+          "legendFormat": "{{version}} {{comparator}}",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "bargauge",
+      "title": "Injected regressions caught",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 19,
+        "w": 12,
+        "h": 12
+      },
+      "options": {
+        "displayMode": "gradient",
+        "orientation": "horizontal",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "values": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "unit": "percentunit",
+          "max": 1
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "last_over_time(tracelab_eval_regressions_caught[3650d]) / last_over_time(tracelab_eval_regressions_to_catch[3650d])",
+          "legendFormat": "{{version}} {{comparator}}",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Runs completed per minute",
+      "description": "Bench throughput: how many sealed runs each benchmark produced per minute of collection, failed or not.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 31,
+        "w": 24,
+        "h": 6
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "pointSize": 4,
+            "showPoints": "always"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (corpus, benchmark) (count_over_time(tracelab_run_succeeded[1m]))",
+          "legendFormat": "{{corpus}} {{benchmark}}",
+          "interval": "1s"
+        }
+      ],
+      "maxDataPoints": 10000
+    }
+  ],
+  "templating": {
+    "list": []
+  },
+  "refresh": ""
+}
