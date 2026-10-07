@@ -1,0 +1,35 @@
+# Written before the v2 corpus was collected, and not tuned against it.
+# Same two changes from v1 as policies/v2/matmul.toml, for the same reasons.
+benchmark = "periodic"
+baseline_window = 20
+min_baseline_runs = 5
+min_candidate_runs = 3
+confidence = 0.95
+n_boot = 2000
+max_baseline_noise = 0.05
+confirm_regressions = true
+
+[jitter]
+source = "tick_interval"
+period = 20_000_000
+tolerance = 0.25
+
+[[metrics]]
+metric = "tick_interval"
+statistic = "mean"
+threshold = 0.03
+role = "critical"
+
+[[metrics]]
+metric = "tick_interval"
+statistic = "p99"
+threshold = 0.05
+role = "critical"
+
+[[metrics]]
+metric = "tick_interval.deadline_miss"
+statistic = "mean"
+mode = "absolute"
+# One percentage point more ticks late than the period plus a quarter.
+threshold = 0.01
+role = "critical"

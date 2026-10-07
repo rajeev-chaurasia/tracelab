@@ -9,7 +9,7 @@ The rig is this development machine, described as what it is. It is not a
 benchmark rig and nothing here claims otherwise: there is no governor control,
 no thermal gate and no isolation, which is exactly why its noise is useful.
 
-    uv run python -m evaluation.collect --runs 100
+    uv run python -m evaluation.collect --runs 150
 """
 
 from __future__ import annotations
@@ -30,7 +30,7 @@ from tracelab.core.canon import sha256_hex
 from tracelab.core.contract import validate_attempt
 from tracelab.core.describe import summarize
 
-STORE = Path("corpus/store")
+STORE = Path("corpus/v2/store")
 WORKLOAD = Path("evaluation/workload.py")
 
 

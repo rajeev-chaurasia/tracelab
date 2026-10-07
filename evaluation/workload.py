@@ -19,7 +19,7 @@ import time
 
 import numpy as np
 
-MATMUL = {"warmups": 5, "repetitions": 30, "size": 256}
+MATMUL = {"warmups": 5, "repetitions": 200, "size": 256}
 PERIODIC = {"warmups": 10, "repetitions": 150, "period_ns": 20_000_000, "size": 128}
 
 
