@@ -31,21 +31,33 @@ loads the lake, and runs three rollups written in BigQuery's dialect:
 | `run_health` | how many runs succeeded, failed or were invalid, failure rate, run duration, preflight load |
 | `run_to_run_noise` | the spread of per-run medians, as a coefficient of variation and as the robust noise the comparison engine gates on |
 
-**This has been run against the BigQuery emulator, not a real GCP project.**
-The client takes an endpoint, so pointing it at BigQuery is a matter of
-credentials, but nothing here claims that has been done.
+It has been run two ways. Against the BigQuery emulator, locally and in CI.
+And against BigQuery itself, in the `tracelab` dataset of a GCP project: four
+corpora, 1,346 runs and 293,810 samples, loaded with free Parquet load jobs
+that replace the tables so a rerun cannot double them, in about 21 seconds.
 
 Every rollup is then recomputed from the Parquet files with numpy and with the
 engine's own noise function, value by value, and the command fails on any
-difference. Against the emulator, all three rollups over all 1,046 runs agree
-to within 1e-9.
+difference. On BigQuery all three rollups agree with the lake to within 1e-9,
+with no disagreements, and so do they on the emulator.
 
-That check found a real problem on its first run. The emulator returns the
-input of `APPROX_QUANTILES` unsorted, so its "p99" was an arbitrary sample:
+`evidence/warehouse/` keeps what BigQuery returned and what it reported about
+itself: both tables partitioned by day on `started_at` and clustered as
+designed, and dry-run byte counts. At two days of data partitioning has little
+to prune. A filter inside the busier day scans more than no filter, because it
+reads the `started_at` column too, while a filter that excludes a day cuts the
+scan from 6.6 MB to 0.7 MB.
+
+The rollup check found a real problem on its first run against the emulator,
+which returns the
+input of `APPROX_QUANTILES` unsorted, so its "p99" was an arbitrary sample. The
+same probe on BigQuery itself, recorded in `evidence/warehouse`, returns the
+sorted answer:
 
 ```
 SELECT APPROX_QUANTILES(x, 4) FROM UNNEST([1.0, 2.0, 10.0, 100.0, 3.0]) AS x
--> [1.0, 2.0, 10.0, 100.0, 3.0]        BigQuery returns [1.0, 2.0, 3.0, 10.0, 100.0]
+emulator  -> [1.0, 2.0, 10.0, 100.0, 3.0]
+BigQuery  -> [1.0, 2.0, 3.0, 10.0, 100.0]
 ```
 
 The rollups use `PERCENTILE_CONT` as a window function instead. It is exact on

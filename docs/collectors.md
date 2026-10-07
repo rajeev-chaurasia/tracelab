@@ -17,8 +17,8 @@ script/ebpf_record.sh periodic evidence/traces/periodic-ebpf.json        # adds 
 | process | CPU user and system time, RSS, voluntary and involuntary context switches, every 10 ms | monotonic, in the recorder | run on every recording |
 | system | machine-wide and busiest-core CPU utilisation, every 250 ms | wall clock, in a separate process | run on every recording |
 | eBPF | run-queue waits and preemptions of the workload's main thread | CLOCK_MONOTONIC in the kernel | run in a Linux container, see below |
-| nvidia-smi | GPU and memory utilisation, memory used, power, temperature, SM clock | wall clock | **format-tested only, never run on a GPU** |
-| Nsight Systems | CUDA kernels and memory copies from an `nsys export` SQLite file | session-relative, placed by its UTC start | **format-tested only, never run on a GPU** |
+| nvidia-smi | GPU and memory utilisation, memory used, power, temperature, SM clock | wall clock | run on an NVIDIA L4 in GCP |
+| Nsight Systems | CUDA kernels and memory copies from an `nsys export` SQLite file | session-relative, placed by its UTC start | run on an NVIDIA L4 in GCP, nsys 2025.1 |
 
 The system sampler runs out of process and stamps wall time on purpose, the way
 an external tool does, so every recording exercises the alignment rather than
@@ -42,6 +42,32 @@ NTP slewing, and why the mapping is a line and not an offset.
 
 Inside Linux, the eBPF and workload samples need no mapping at all:
 `bpf_ktime_get_ns` and Python's `time.monotonic_ns` both read CLOCK_MONOTONIC.
+
+## GPU: kernels on the same timeline
+
+On an L4 in a GCP VM, `tracelab record --gpu --nsys` put five sources on one
+trace: workload iterations timed with CUDA events, process and system
+samples, nvidia-smi telemetry, and 552 CUDA kernels from Nsight Systems
+(`evidence/traces/gpu-nsys.trace.json`). Those sources share no clock: the
+iterations are on the monotonic clock, the kernels on nsys's session clock
+placed through the wall clock.
+
+The check in `evaluation/gpu_alignment.py` asks whether the work lines up
+anyway. It does. All 50 measured iterations contain exactly the 10 GEMM kernels
+they launched, the kernels account for 99.5 to 99.7% of each iteration's
+CUDA-event time, and the slack at either end is about 50 and 37 microseconds,
+which is the host stamping the iteration after its synchronize returns, not
+the clock mapping.
+
+The run also corrected the importer. The fixtures had a memcpy table; a real
+profile with no copies has none, and the importer now handles that. And it
+confirmed the time origin: a host wall-clock stamp taken just after a
+synchronize lands 12 to 16 microseconds after session start plus the last
+kernel's end.
+
+In v5 the same telemetry explained a verdict: the only false regressions came
+while the L4 was heating from 37 to 52 degrees and its SM clock was falling
+from 1,005 to 960 MHz.
 
 ## eBPF: what the scheduler explains
 

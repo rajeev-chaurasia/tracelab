@@ -45,6 +45,12 @@ rather than left as first written. The substantive changes:
   throughput, where higher is better, with traces sealed in the artifacts.
   Every false regression came from a disturbed stretch of the machine longer
   than the confirmation gap. Pinned at eleven.
+- **The cloud parts ran for real.** The lake was loaded into BigQuery in a GCP
+  project and every rollup matched it. A GPU VM with an L4 ran the NVIDIA
+  collectors, which corrected the Nsight importer, and collected v5. v5 failed
+  by three over-calls while the GPU warmed, and its negative control failed
+  too, because the GPU was quiet enough that a naive gate did as well. Pinned
+  at three; the VM was deleted after.
 
 ## 1. The claim this repo has to earn
 

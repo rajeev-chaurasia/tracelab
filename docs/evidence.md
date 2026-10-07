@@ -7,11 +7,11 @@ check it, and what it cannot show.
 
 Each version has three parts, all committed:
 
-| part | v1 | v2 | v3 | v4 |
-| --- | --- | --- | --- | --- |
-| corpus of sealed run artifacts | `corpus/v1/store`, 200 runs | `corpus/v2/store`, 300 runs | `corpus/v3/store`, 546 runs, and `corpus/v3/contention.jsonl` | `corpus/v4/store`, 300 runs, 30 with sealed traces |
-| policies, committed before the corpus | `policies/v1` | `policies/v2` | `policies/v2`, unchanged | `policies/v4` |
-| every decision, and summaries derived from them | `evidence/v1` | `evidence/v2` | `evidence/v3` | `evidence/v4` |
+| part | v1 | v2 | v3 | v4 | v5 |
+| --- | --- | --- | --- | --- | --- |
+| corpus of sealed run artifacts | `corpus/v1/store`, 200 runs | `corpus/v2/store`, 300 runs | `corpus/v3/store`, 546 runs, and `corpus/v3/contention.jsonl` | `corpus/v4/store`, 300 runs, 30 with sealed traces | `corpus/v5/store`, 120 runs on an L4, 12 with sealed traces |
+| policies, committed before the corpus | `policies/v1` | `policies/v2` | `policies/v2`, unchanged | `policies/v4` | `policies/v5` |
+| every decision, and summaries derived from them | `evidence/v1` | `evidence/v2` | `evidence/v3` | `evidence/v4` | `evidence/v5` |
 
 A decision row names the case, the comparator, the verdict, every metric's
 interval, and the run ids on each side, so any single verdict can be traced to
@@ -23,12 +23,15 @@ the samples that produced it. `summary.json` and `summary.md` are computed from
 `evaluation/collect.py` runs each benchmark as a fresh process, wraps its
 samples in benchgrid's run artifact contract, and reads the result straight
 back through the contract reader before sealing it. A run the reader would
-reject stops collection. All 1,346 runs are accepted by
+reject stops collection. All 1,466 runs are accepted by
 `python -m tracelab.ingest`.
 
-The two benchmarks are interleaved, so slow drift in the machine lands in both
-alike. The machine is an Apple M4 laptop, described in every run as what it
-is: `hardware_class` `laptop-arm64`, not emulated, governor `unmanaged`.
+The benchmarks of a corpus are interleaved, so slow drift in the machine lands
+in all of them alike. v1 to v4 ran on an Apple M4 laptop, described in every
+run as what it is: `hardware_class` `laptop-arm64`, not emulated, governor
+`unmanaged`. v5 ran on a GCP `g2-standard-4` VM with one NVIDIA L4, driver
+580.178.04, described as `gcp-g2-standard-4-l4`; the VM was deleted after
+collection.
 
 - **v1** was collected while the machine was in ordinary use, which included
   this repository's own test suite running partway through. That load is in
@@ -108,6 +111,27 @@ bandwidth cases are INCONCLUSIVE, and TraceLab caught 91 of 288 injected
 regressions against 242 and 248 for the fixed gates. Those gates bought their
 catches with 141 and 208 false ones.
 
+## v5, on a real GPU
+
+v5 ran the CUDA workload, ten fp16 4096 by 4096 multiplies per iteration timed
+with CUDA events, on an L4 in a GCP VM, with nvidia-smi telemetry sealed in
+every tenth run. The GPU was far quieter than the laptop: run-to-run noise of
+the median 0.59%. TraceLab passed all 26 same-code windows and caught 102 of
+104 injected regressions.
+
+Its claim of zero false regressions failed by three, all in the 2% slowdown
+case, all in the first windows. The telemetry in the sealed traces says why.
+Over the first forty runs the L4 heated from 37 to 52 degrees and its SM clock
+under load fell from 1,005 to 960 MHz, and throughput fell with it, about 2.5%,
+before both settled. A baseline taken while it was still cool made a real 2%
+slowdown measure past 3% in both batches.
+
+v5's negative control also fails, and the pin does not hide that. On a GPU
+this stable the fixed 5% window gate raised no same-code false regression
+either, so v5 cannot tell the methods apart. What it shows is narrower: on a
+quiet device TraceLab does not invent regressions, and it does not escape a
+device that has not reached steady state.
+
 ## Reproducing and checking
 
 ```
@@ -120,10 +144,11 @@ on every case and requires an exact match, recomputes both summaries byte for
 byte, and then checks the claim. CI runs it on every push.
 
 For v2 the claim check requires zero TraceLab false regressions and at least
-one same-code false regression from a weaker comparator. For v1, v3 and v4,
-which are published as failures, it requires exactly the published count: ten
-overall for v1, three on the targeted windows for v3, where the one-batch
-engine must also still raise at least one, and eleven overall for v4.
+one same-code false regression from a weaker comparator. For v1, v3, v4 and
+v5, which are published as failures, it requires exactly the published count:
+ten overall for v1, three on the targeted windows for v3, where the one-batch
+engine must also still raise at least one, eleven overall for v4, and three
+overall for v5.
 
 ## Changes to the harness after a result
 

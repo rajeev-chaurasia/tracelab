@@ -21,8 +21,9 @@ gate is worse than none because people still believe it is watching. So the
 evidence here is mostly about the other side of the promise: what happens when
 the code did not change and the machine was simply noisy.
 
-There are four published evaluations over 1,346 real benchmark runs. Three
-of them are failures, and all are kept exactly as they came out.
+There are five published evaluations over 1,466 real benchmark runs, the last
+on an NVIDIA L4. Four of them are failures, and all are kept exactly as they
+came out.
 
 | version | what it tested | TraceLab false regressions | fixed 5% gates | outcome |
 | --- | --- | ---: | ---: | --- |
@@ -30,6 +31,7 @@ of them are failures, and all are kept exactly as they came out.
 | v2 | the same, with confirmation, quiet machine | **0** | 88 and 110 | held |
 | v3 | scheduled CPU bursts against confirmation | 3 on targeted windows, 20 overall | over 300 | failed, pinned at 3 |
 | v4 | rate metrics, higher is better, traces sealed | 11 | 141 and 208 | failed, pinned at 11 |
+| v5 | CUDA matmul on an L4, GPU telemetry sealed | 3, none on same code | 0 and 6 | failed, pinned at 3 |
 
 ## v3: real contention on a schedule fixed in advance
 
@@ -80,6 +82,18 @@ so TraceLab returned INCONCLUSIVE on most of its cases and caught 91 of 288
 injected regressions, where the fixed gates caught about 245 at the price of
 141 and 208 false ones.
 
+## v5: a real GPU
+
+From `evidence/v5`: 120 runs of fp16 matrix multiplies on an NVIDIA L4 in a GCP
+VM, timed with CUDA events, with nvidia-smi telemetry sealed in every tenth
+run. TraceLab passed all 26 same-code windows and caught 102 of 104 injected
+regressions. Its three false regressions were real 2% slowdowns called past
+the 3% threshold in the first windows, and the sealed telemetry shows why: the
+L4 was heating from 37 to 52 degrees and its SM clock under load was falling
+from 1,005 to 960 MHz. On a device this stable the simple window gate raised
+no false regression on same code either, so v5's negative control fails too,
+and the evidence says so rather than counting it as a win.
+
 ## v2: a quiet machine
 
 From `evidence/v2`: 300 real runs, nothing scheduled.
@@ -108,7 +122,7 @@ loading the machine. That failure is why confirmation exists
 ## Checking any of this
 
 ```
-uv run python -m evaluation.score v4
+uv run python -m evaluation.score v5
 uv run python -m script.validate_evidence
 ```
 
@@ -174,17 +188,20 @@ late ticks out of 150 and its p99 run-queue wait from 0.8 ms to 11.9 ms, with
 the late ticks the ones that waited. Recording it found two collector bugs,
 both fixed and both written up in [docs/collectors.md](docs/collectors.md).
 
-Collectors for nvidia-smi and Nsight Systems exports exist and are tested
-against their documented formats only; no NVIDIA GPU has run them.
+On an L4 in GCP, `tracelab record --gpu --nsys` adds nvidia-smi telemetry and
+every CUDA kernel from Nsight Systems. Those share no clock with the workload,
+and still all 50 measured iterations contain exactly the 10 GEMM kernels they
+launched, which account for 99.6% of each iteration's CUDA-event time.
 
 ## History: warehouse and dashboards
 
 `tracelab warehouse` flattens every corpus into a date-partitioned Parquet
 lake, loads it into partitioned, clustered BigQuery tables, runs rollups in
 BigQuery's dialect, and recomputes every rollup from the lake, failing on any
-difference. Run against the BigQuery emulator, not a real GCP project, all
-rollups agree to 1e-9, and the check caught the emulator returning
-`APPROX_QUANTILES` input unsorted. `script/dashboards.sh` backfills
+difference. On BigQuery, in a GCP project, 1,346 runs and 293,810 samples load
+in about 21 seconds and every rollup agrees with the lake to 1e-9. The same
+check run on the BigQuery emulator caught it returning `APPROX_QUANTILES` input
+unsorted, which BigQuery itself does not. `script/dashboards.sh` backfills
 Prometheus from the lake so every run sits at the time it ran, behind a
 provisioned Grafana dashboard. See [docs/warehouse.md](docs/warehouse.md).
 
@@ -198,7 +215,8 @@ uv run tracelab compare <store> --policy policies/v2/matmul.toml \
 uv run tracelab record --out trace.json -- python -m evaluation.workload periodic
 script/ebpf_record.sh periodic trace.json
 uv run tracelab warehouse export --lake lake --store v2=corpus/v2/store
-uv run tracelab warehouse bigquery --lake lake --endpoint http://localhost:9050
+uv run tracelab warehouse bigquery --lake lake --project <gcp-project>
+uv run tracelab record --gpu --nsys "$(which nsys)" --out trace.json -- python3 -m evaluation.workload gpu
 script/dashboards.sh
 ```
 
@@ -218,7 +236,7 @@ for a second batch instead of failing the step.
 | `src/tracelab/warehouse` | Parquet lake, BigQuery tables and rollups, the rollup check, OpenMetrics |
 | `src/tracelab/cli.py`, `report.py` | the commands and the check they print |
 | `evaluation/` | workloads, corpus collector, contention schedule, cases, comparators, scorer, eBPF attribution |
-| `corpus/`, `policies/`, `evidence/` | each published version, frozen; v3 reuses the v2 policies; `evidence/traces` holds the eBPF recordings |
+| `corpus/`, `policies/`, `evidence/` | each published version, frozen; v3 reuses the v2 policies; `evidence/traces` holds the eBPF and GPU recordings, `evidence/warehouse` what BigQuery returned |
 | `deploy/` | Prometheus and Grafana, and the Linux image for eBPF recordings |
 
 ## Documents

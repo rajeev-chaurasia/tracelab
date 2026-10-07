@@ -77,13 +77,16 @@ deadline-miss rate is judged by its interval alone. A baseline whose miss rate
 jumps between zero and a few percent from run to run is not refused as too
 noisy; it only produces a wide interval.
 
-## The NVIDIA collectors have never seen an NVIDIA GPU
+## One GPU, for thirty-five minutes
 
-`tracelab.collect.nvidia` parses nvidia-smi's CSV query output and Nsight
-Systems' SQLite export. Both are tested against fixtures built to the
-documented formats. Neither has run against a real driver or a real `nsys`
-export, so a format difference between the documentation and a given driver
-version would surface only on a GPU rig. No GPU metric in any corpus is real.
+The NVIDIA collectors and the CUDA workload have run on one L4, on one driver,
+in one GCP VM, for about thirty-five minutes before it was deleted. A different
+GPU, driver or nsys version could format something differently; the first real
+run already found one difference from the documented format. No occupancy is
+measured: nvidia-smi reports utilisation, which is how often a kernel was
+running, not how full the SMs were. And v5 shows the device itself drifting
+while it warms, which a benchmark that does not wait for steady state will
+mistake for the code.
 
 ## eBPF follows one thread, in a VM
 
@@ -92,12 +95,12 @@ helper thread, such as a BLAS pool, are not seen. The recordings were made in
 Docker Desktop's Linux VM, so the scheduler being measured shares its CPUs
 with a hypervisor; on bare metal the quiet numbers would likely be lower.
 
-## The rollups are checked against one warehouse
+## The rollups are checked against two days of data
 
-The BigQuery SQL has been run on the emulator only. The emulator already
-disagreed with BigQuery once, on `APPROX_QUANTILES`, which is why every rollup
-is recomputed from the lake. A behaviour where the emulator and BigQuery
-disagree but the emulator happens to match the lake would not be caught.
+The BigQuery SQL has run on the emulator and on BigQuery, and both agree with
+the lake. But every corpus was collected within two days, so the rollups have
+never been exercised across months of partitions, and nothing here measures
+how their cost grows with history.
 
 ## What the evaluation cannot show
 

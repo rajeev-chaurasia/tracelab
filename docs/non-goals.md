@@ -3,13 +3,12 @@
 Each of these is a real feature of a real performance platform, and each is
 deliberately absent. The list is here so the absences read as decisions.
 
-## No cloud deployment
+## No standing cloud deployment
 
-The warehouse runs against the BigQuery emulator and the dashboards against
-local Prometheus and Grafana containers. Nothing here has been run against a
-real GCP project, a GCS bucket or a hosted Grafana, and nothing claims to have
-been. The BigQuery client takes an endpoint, so the step is credentials, not
-code; it is still a step not taken.
+BigQuery has been used for real, in a GCP project's `tracelab` dataset, and a
+GPU VM was created for one evaluation and deleted after it. Nothing runs
+there continuously: no scheduled loads, no hosted Grafana, no GCS bucket.
+Corpora live in the repository and dashboards run on localhost.
 
 ## No sampling profiler
 
