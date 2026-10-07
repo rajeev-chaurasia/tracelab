@@ -11,6 +11,8 @@ permissions:
 jobs:
   check:
     runs-on: ubuntu-latest
+    env:
+      TRACELAB_BQ_ENDPOINT: http://localhost:9050
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
@@ -19,6 +21,17 @@ jobs:
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: "3.4"
+      # The warehouse rollups run against the BigQuery emulator here, so the
+      # integration test that is skipped on a laptop without it runs on every
+      # push. A step rather than a service, because the emulator will not
+      # start without --project and services take no arguments.
+      - name: Start the BigQuery emulator
+        run: |
+          docker run -d -p 9050:9050 ghcr.io/goccy/bigquery-emulator:latest --project=tracelab
+          for _ in $(seq 1 30); do
+            curl -sf localhost:9050/bigquery/v2/projects/tracelab/datasets && break
+            sleep 1
+          done
       - run: uv sync --all-groups
       - run: uv run ruff check .
       - run: uv run ruff format --check .
