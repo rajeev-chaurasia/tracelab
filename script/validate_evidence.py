@@ -66,7 +66,7 @@ def check_summary(version: Version, published: list[dict[str, Any]]) -> list[str
     return errors
 
 
-def check_contention_claim(published: list[dict[str, Any]]) -> list[str]:
+def check_contention_claim(published: list[dict[str, Any]], pinned: int | None = None) -> list[str]:
     """v3's pre-registered claim, on the windows its schedule targeted.
 
     TraceLab must raise no false regression where only the first batch ran
@@ -77,9 +77,15 @@ def check_contention_claim(published: list[dict[str, Any]]) -> list[str]:
     target = "short_burst_first_batch"
     errors = []
     false = summary["tracelab"]["by_exposure"][target]["false_regressions"]
-    if false != 0:
+    if pinned is not None:
+        if false != pinned:
+            errors.append(
+                f"published as {pinned} false regressions on {target}, decisions show {false}"
+            )
+    elif false != 0:
         errors.append(f"claim fails: tracelab raised {false} false regressions on {target}")
-    control = summary["tracelab_one_batch"]["by_exposure"][target]["false_regressions"]
+    one_batch = summary.get("tracelab_one_batch", {}).get("by_exposure", {})
+    control = one_batch.get(target, {}).get("false_regressions", 0)
     if control == 0:
         errors.append(
             "negative control fails: the one-batch engine raised no false regression on "
@@ -90,7 +96,7 @@ def check_contention_claim(published: list[dict[str, Any]]) -> list[str]:
 
 def check_claim(published: list[dict[str, Any]], pinned: int | None = None) -> list[str]:
     if any("exposure" in d for d in published):
-        return check_contention_claim(published)
+        return check_contention_claim(published, pinned)
     summary = score.summarize(published)["comparators"]
     false = summary["tracelab"]["false_regressions"]
     if pinned is not None:

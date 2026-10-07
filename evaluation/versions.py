@@ -25,7 +25,8 @@ class Version:
     confirmation_gap: int | None
     comparators: list[Comparator]
     # None means the claim must hold. A number means the published result is a
-    # failure with exactly that many TraceLab false regressions.
+    # failure with exactly that many TraceLab false regressions, counted over
+    # every case, or over the targeted windows for a contention corpus.
     pinned_false_regressions: int | None
     # Set for a corpus collected under scheduled contention. Each decision is
     # labelled with how its window was exposed, and the claim is checked on
@@ -71,7 +72,10 @@ VERSIONS = {
             out=Path("evidence/v3"),
             confirmation_gap=18,
             comparators=[TRACELAB, ONE_BATCH, *BASELINES],
-            pinned_false_regressions=None,
+            # Published as a failure: three false regressions on the windows
+            # whose first batch alone was contended, where the pre-registered
+            # claim was zero. docs/evidence.md traces each one.
+            pinned_false_regressions=3,
             exposure=lambda start: exposure(start).value,
         ),
     ]

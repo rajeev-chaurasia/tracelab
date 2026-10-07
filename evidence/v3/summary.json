@@ -1,0 +1,554 @@
+{
+  "comparators": {
+    "fixed_5pct_previous_run": {
+      "by_exposure": {
+        "long_burst_both_batches": {
+          "cases": 17,
+          "false_regressions": 4,
+          "regressions_caught": 6,
+          "regressions_to_catch": 7
+        },
+        "partial": {
+          "cases": 1140,
+          "false_regressions": 238,
+          "regressions_caught": 372,
+          "regressions_to_catch": 469
+        },
+        "short_burst_first_batch": {
+          "cases": 153,
+          "false_regressions": 64,
+          "regressions_caught": 61,
+          "regressions_to_catch": 63
+        }
+      },
+      "by_kind": {
+        "matmul/emulated_rig_+10%": {
+          "IMPROVEMENT": 1,
+          "REGRESSION": 76
+        },
+        "matmul/latency_+10%": {
+          "IMPROVEMENT": 1,
+          "REGRESSION": 76
+        },
+        "matmul/latency_+2%": {
+          "IMPROVEMENT": 22,
+          "PASS": 34,
+          "REGRESSION": 21
+        },
+        "matmul/latency_+20%": {
+          "REGRESSION": 77
+        },
+        "matmul/latency_+5%": {
+          "IMPROVEMENT": 19,
+          "PASS": 18,
+          "REGRESSION": 40
+        },
+        "matmul/latency_-10%": {
+          "IMPROVEMENT": 65,
+          "REGRESSION": 12
+        },
+        "matmul/latency_spread_x2": {
+          "IMPROVEMENT": 22,
+          "PASS": 25,
+          "REGRESSION": 30
+        },
+        "matmul/latency_tail_x1.5": {
+          "IMPROVEMENT": 12,
+          "PASS": 1,
+          "REGRESSION": 64
+        },
+        "matmul/noisy_baseline_+10%": {
+          "IMPROVEMENT": 9,
+          "PASS": 9,
+          "REGRESSION": 59
+        },
+        "matmul/noisy_baseline_same_code": {
+          "IMPROVEMENT": 29,
+          "PASS": 16,
+          "REGRESSION": 32
+        },
+        "matmul/one_candidate_+10%": {
+          "IMPROVEMENT": 1,
+          "REGRESSION": 77
+        },
+        "matmul/rss_+10%": {
+          "REGRESSION": 16,
+          "WARNING": 61
+        },
+        "matmul/same_code": {
+          "IMPROVEMENT": 24,
+          "PASS": 37,
+          "REGRESSION": 16
+        },
+        "periodic/late_ticks_5%": {
+          "IMPROVEMENT": 1,
+          "PASS": 1,
+          "REGRESSION": 75
+        },
+        "periodic/noisy_baseline_same_code": {
+          "IMPROVEMENT": 43,
+          "PASS": 3,
+          "REGRESSION": 31
+        },
+        "periodic/rate_+10%": {
+          "REGRESSION": 77
+        },
+        "periodic/same_code": {
+          "IMPROVEMENT": 22,
+          "PASS": 30,
+          "REGRESSION": 25
+        }
+      },
+      "cases": 1310,
+      "correct": 744,
+      "false_improvements": 206,
+      "false_regressions": 306,
+      "regressions_caught": 439,
+      "regressions_inconclusive": 0,
+      "regressions_to_catch": 539,
+      "same_code_cases": 154,
+      "same_code_false_regressions": 41
+    },
+    "fixed_5pct_window": {
+      "by_exposure": {
+        "long_burst_both_batches": {
+          "cases": 17,
+          "false_regressions": 9,
+          "regressions_caught": 7,
+          "regressions_to_catch": 7
+        },
+        "partial": {
+          "cases": 1140,
+          "false_regressions": 220,
+          "regressions_caught": 373,
+          "regressions_to_catch": 469
+        },
+        "short_burst_first_batch": {
+          "cases": 153,
+          "false_regressions": 74,
+          "regressions_caught": 63,
+          "regressions_to_catch": 63
+        }
+      },
+      "by_kind": {
+        "matmul/emulated_rig_+10%": {
+          "REGRESSION": 77
+        },
+        "matmul/latency_+10%": {
+          "REGRESSION": 77
+        },
+        "matmul/latency_+2%": {
+          "IMPROVEMENT": 41,
+          "PASS": 13,
+          "REGRESSION": 23
+        },
+        "matmul/latency_+20%": {
+          "REGRESSION": 77
+        },
+        "matmul/latency_+5%": {
+          "IMPROVEMENT": 24,
+          "PASS": 8,
+          "REGRESSION": 45
+        },
+        "matmul/latency_-10%": {
+          "IMPROVEMENT": 58,
+          "REGRESSION": 19
+        },
+        "matmul/latency_spread_x2": {
+          "IMPROVEMENT": 34,
+          "PASS": 15,
+          "REGRESSION": 28
+        },
+        "matmul/latency_tail_x1.5": {
+          "IMPROVEMENT": 13,
+          "PASS": 1,
+          "REGRESSION": 63
+        },
+        "matmul/noisy_baseline_+10%": {
+          "IMPROVEMENT": 5,
+          "PASS": 1,
+          "REGRESSION": 71
+        },
+        "matmul/noisy_baseline_same_code": {
+          "IMPROVEMENT": 51,
+          "PASS": 4,
+          "REGRESSION": 22
+        },
+        "matmul/one_candidate_+10%": {
+          "REGRESSION": 78
+        },
+        "matmul/rss_+10%": {
+          "REGRESSION": 23,
+          "WARNING": 54
+        },
+        "matmul/same_code": {
+          "IMPROVEMENT": 43,
+          "PASS": 11,
+          "REGRESSION": 23
+        },
+        "periodic/late_ticks_5%": {
+          "PASS": 1,
+          "REGRESSION": 76
+        },
+        "periodic/noisy_baseline_same_code": {
+          "IMPROVEMENT": 52,
+          "PASS": 10,
+          "REGRESSION": 15
+        },
+        "periodic/rate_+10%": {
+          "REGRESSION": 77
+        },
+        "periodic/same_code": {
+          "IMPROVEMENT": 18,
+          "PASS": 36,
+          "REGRESSION": 23
+        }
+      },
+      "cases": 1310,
+      "correct": 700,
+      "false_improvements": 281,
+      "false_regressions": 303,
+      "regressions_caught": 443,
+      "regressions_inconclusive": 0,
+      "regressions_to_catch": 539,
+      "same_code_cases": 154,
+      "same_code_false_regressions": 46
+    },
+    "pooled_bootstrap": {
+      "by_exposure": {
+        "long_burst_both_batches": {
+          "cases": 17,
+          "false_regressions": 5,
+          "regressions_caught": 7,
+          "regressions_to_catch": 7
+        },
+        "partial": {
+          "cases": 1140,
+          "false_regressions": 49,
+          "regressions_caught": 363,
+          "regressions_to_catch": 469
+        },
+        "short_burst_first_batch": {
+          "cases": 153,
+          "false_regressions": 42,
+          "regressions_caught": 63,
+          "regressions_to_catch": 63
+        }
+      },
+      "by_kind": {
+        "matmul/emulated_rig_+10%": {
+          "INCOMPARABLE": 77
+        },
+        "matmul/latency_+10%": {
+          "REGRESSION": 77
+        },
+        "matmul/latency_+2%": {
+          "IMPROVEMENT": 8,
+          "INCONCLUSIVE": 39,
+          "PASS": 6,
+          "REGRESSION": 23,
+          "WARNING": 1
+        },
+        "matmul/latency_+20%": {
+          "REGRESSION": 77
+        },
+        "matmul/latency_+5%": {
+          "REGRESSION": 77
+        },
+        "matmul/latency_-10%": {
+          "IMPROVEMENT": 20,
+          "INCONCLUSIVE": 44,
+          "REGRESSION": 13
+        },
+        "matmul/latency_spread_x2": {
+          "IMPROVEMENT": 7,
+          "INCONCLUSIVE": 43,
+          "PASS": 6,
+          "REGRESSION": 21
+        },
+        "matmul/latency_tail_x1.5": {
+          "IMPROVEMENT": 1,
+          "INCONCLUSIVE": 41,
+          "REGRESSION": 35
+        },
+        "matmul/noisy_baseline_+10%": {
+          "INCONCLUSIVE": 71,
+          "REGRESSION": 6
+        },
+        "matmul/noisy_baseline_same_code": {
+          "INCONCLUSIVE": 76,
+          "REGRESSION": 1
+        },
+        "matmul/one_candidate_+10%": {
+          "INCONCLUSIVE": 78
+        },
+        "matmul/rss_+10%": {
+          "INCONCLUSIVE": 41,
+          "REGRESSION": 19,
+          "WARNING": 17
+        },
+        "matmul/same_code": {
+          "IMPROVEMENT": 10,
+          "INCONCLUSIVE": 41,
+          "PASS": 7,
+          "REGRESSION": 19
+        },
+        "periodic/late_ticks_5%": {
+          "INCONCLUSIVE": 8,
+          "REGRESSION": 69
+        },
+        "periodic/noisy_baseline_same_code": {
+          "INCONCLUSIVE": 72,
+          "REGRESSION": 5
+        },
+        "periodic/rate_+10%": {
+          "REGRESSION": 77
+        },
+        "periodic/same_code": {
+          "IMPROVEMENT": 4,
+          "INCONCLUSIVE": 42,
+          "PASS": 15,
+          "REGRESSION": 16
+        }
+      },
+      "cases": 1310,
+      "correct": 879,
+      "false_improvements": 30,
+      "false_regressions": 96,
+      "regressions_caught": 433,
+      "regressions_inconclusive": 92,
+      "regressions_to_catch": 539,
+      "same_code_cases": 154,
+      "same_code_false_regressions": 35
+    },
+    "tracelab": {
+      "by_exposure": {
+        "long_burst_both_batches": {
+          "cases": 17,
+          "false_regressions": 1,
+          "regressions_caught": 7,
+          "regressions_to_catch": 7
+        },
+        "partial": {
+          "cases": 1140,
+          "false_regressions": 16,
+          "regressions_caught": 330,
+          "regressions_to_catch": 469
+        },
+        "short_burst_first_batch": {
+          "cases": 153,
+          "false_regressions": 3,
+          "regressions_caught": 53,
+          "regressions_to_catch": 63
+        }
+      },
+      "by_kind": {
+        "matmul/emulated_rig_+10%": {
+          "INCOMPARABLE": 77
+        },
+        "matmul/latency_+10%": {
+          "REGRESSION": 77
+        },
+        "matmul/latency_+2%": {
+          "IMPROVEMENT": 2,
+          "INCONCLUSIVE": 67,
+          "REGRESSION": 8
+        },
+        "matmul/latency_+20%": {
+          "REGRESSION": 77
+        },
+        "matmul/latency_+5%": {
+          "REGRESSION": 77
+        },
+        "matmul/latency_-10%": {
+          "IMPROVEMENT": 17,
+          "INCONCLUSIVE": 59,
+          "REGRESSION": 1
+        },
+        "matmul/latency_spread_x2": {
+          "IMPROVEMENT": 2,
+          "INCONCLUSIVE": 70,
+          "REGRESSION": 5
+        },
+        "matmul/latency_tail_x1.5": {
+          "INCONCLUSIVE": 56,
+          "REGRESSION": 21
+        },
+        "matmul/noisy_baseline_+10%": {
+          "INCONCLUSIVE": 71,
+          "REGRESSION": 6
+        },
+        "matmul/noisy_baseline_same_code": {
+          "INCONCLUSIVE": 77
+        },
+        "matmul/one_candidate_+10%": {
+          "INCONCLUSIVE": 78
+        },
+        "matmul/rss_+10%": {
+          "INCONCLUSIVE": 68,
+          "REGRESSION": 2,
+          "WARNING": 7
+        },
+        "matmul/same_code": {
+          "IMPROVEMENT": 5,
+          "INCONCLUSIVE": 68,
+          "PASS": 2,
+          "REGRESSION": 2
+        },
+        "periodic/late_ticks_5%": {
+          "INCONCLUSIVE": 21,
+          "REGRESSION": 56
+        },
+        "periodic/noisy_baseline_same_code": {
+          "INCONCLUSIVE": 74,
+          "REGRESSION": 3
+        },
+        "periodic/rate_+10%": {
+          "REGRESSION": 77
+        },
+        "periodic/same_code": {
+          "IMPROVEMENT": 3,
+          "INCONCLUSIVE": 66,
+          "PASS": 4,
+          "REGRESSION": 4
+        }
+      },
+      "cases": 1310,
+      "correct": 803,
+      "false_improvements": 12,
+      "false_regressions": 20,
+      "regressions_caught": 390,
+      "regressions_inconclusive": 147,
+      "regressions_to_catch": 539,
+      "same_code_cases": 154,
+      "same_code_false_regressions": 6
+    },
+    "tracelab_one_batch": {
+      "by_exposure": {
+        "long_burst_both_batches": {
+          "cases": 17,
+          "false_regressions": 1,
+          "regressions_caught": 7,
+          "regressions_to_catch": 7
+        },
+        "partial": {
+          "cases": 1140,
+          "false_regressions": 27,
+          "regressions_caught": 343,
+          "regressions_to_catch": 469
+        },
+        "short_burst_first_batch": {
+          "cases": 153,
+          "false_regressions": 31,
+          "regressions_caught": 61,
+          "regressions_to_catch": 63
+        }
+      },
+      "by_kind": {
+        "matmul/emulated_rig_+10%": {
+          "INCOMPARABLE": 77
+        },
+        "matmul/latency_+10%": {
+          "REGRESSION": 77
+        },
+        "matmul/latency_+2%": {
+          "IMPROVEMENT": 2,
+          "INCONCLUSIVE": 57,
+          "REGRESSION": 18
+        },
+        "matmul/latency_+20%": {
+          "REGRESSION": 77
+        },
+        "matmul/latency_+5%": {
+          "REGRESSION": 77
+        },
+        "matmul/latency_-10%": {
+          "IMPROVEMENT": 17,
+          "INCONCLUSIVE": 54,
+          "REGRESSION": 6
+        },
+        "matmul/latency_spread_x2": {
+          "IMPROVEMENT": 2,
+          "INCONCLUSIVE": 61,
+          "REGRESSION": 14
+        },
+        "matmul/latency_tail_x1.5": {
+          "INCONCLUSIVE": 50,
+          "REGRESSION": 27
+        },
+        "matmul/noisy_baseline_+10%": {
+          "INCONCLUSIVE": 71,
+          "REGRESSION": 6
+        },
+        "matmul/noisy_baseline_same_code": {
+          "INCONCLUSIVE": 76,
+          "REGRESSION": 1
+        },
+        "matmul/one_candidate_+10%": {
+          "INCONCLUSIVE": 78
+        },
+        "matmul/rss_+10%": {
+          "INCONCLUSIVE": 60,
+          "REGRESSION": 10,
+          "WARNING": 7
+        },
+        "matmul/same_code": {
+          "IMPROVEMENT": 5,
+          "INCONCLUSIVE": 60,
+          "PASS": 2,
+          "REGRESSION": 10
+        },
+        "periodic/late_ticks_5%": {
+          "INCONCLUSIVE": 15,
+          "REGRESSION": 62
+        },
+        "periodic/noisy_baseline_same_code": {
+          "INCONCLUSIVE": 74,
+          "REGRESSION": 3
+        },
+        "periodic/rate_+10%": {
+          "REGRESSION": 77
+        },
+        "periodic/same_code": {
+          "IMPROVEMENT": 3,
+          "INCONCLUSIVE": 59,
+          "PASS": 4,
+          "REGRESSION": 11
+        }
+      },
+      "cases": 1310,
+      "correct": 823,
+      "false_improvements": 12,
+      "false_regressions": 59,
+      "regressions_caught": 411,
+      "regressions_inconclusive": 126,
+      "regressions_to_catch": 539,
+      "same_code_cases": 154,
+      "same_code_false_regressions": 21
+    }
+  },
+  "corpus": {
+    "matmul": {
+      "between_run_noise_of_median": 0.011515224972647701,
+      "first_started": "2026-10-07T03:52:53.947452+00:00",
+      "last_started": "2026-10-07T04:09:04.574466+00:00",
+      "median_within_run_cv": 0.04089763527408334,
+      "metric": "iteration_latency",
+      "runs": 273,
+      "samples_per_run": [
+        200
+      ]
+    },
+    "periodic": {
+      "between_run_noise_of_median": 0.014309048071369384,
+      "first_started": "2026-10-07T03:52:54.149726+00:00",
+      "last_started": "2026-10-07T04:09:04.767289+00:00",
+      "median_within_run_cv": 0.19549860588461665,
+      "metric": "tick_interval",
+      "runs": 273,
+      "samples_per_run": [
+        150
+      ]
+    }
+  }
+}

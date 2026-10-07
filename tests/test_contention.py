@@ -93,3 +93,15 @@ def test_long_burst_windows_carry_no_claim() -> None:
     ]
 
     assert check_contention_claim(rows) == []
+
+
+def test_a_published_contention_failure_is_pinned_and_still_needs_its_control() -> None:
+    fooled = [row("tracelab_one_batch", TARGET, "REGRESSION")]
+    three = [row("tracelab", TARGET, "REGRESSION")] * 3
+
+    assert check_contention_claim([*three, *fooled], pinned=3) == []
+    assert check_contention_claim([*three[:2], *fooled], pinned=3) == [
+        f"published as 3 false regressions on {TARGET}, decisions show 2"
+    ]
+    [error] = check_contention_claim(three, pinned=3)
+    assert error.startswith("negative control fails")
