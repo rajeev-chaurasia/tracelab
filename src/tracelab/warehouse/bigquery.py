@@ -2,8 +2,8 @@
 
 The client takes an endpoint, so the same code points at real BigQuery with
 credentials or at the BigQuery emulator with none. Everything in this
-repository has been run against the emulator only; docs/warehouse.md says
-what that does and does not establish.
+repository has been run against both the emulator and BigQuery itself, in a
+GCP project; docs/warehouse.md has what each run established.
 
 The tables are created partitioned by run date and clustered on the columns
 every rollup filters or groups by, which is what keeps a scan over a long
@@ -12,6 +12,7 @@ history proportional to the slice asked for rather than to the whole table.
 
 from __future__ import annotations
 
+import io
 from collections.abc import Iterator
 from dataclasses import dataclass
 from datetime import datetime
@@ -20,6 +21,7 @@ from typing import Any
 
 import pyarrow as pa
 import pyarrow.dataset as ds
+import pyarrow.parquet as pq
 from google.api_core.client_options import ClientOptions
 from google.auth.credentials import AnonymousCredentials
 from google.cloud import bigquery
@@ -44,6 +46,8 @@ CLUSTERING = {
 class Warehouse:
     client: bigquery.Client
     dataset: str
+    emulated: bool = False
+    location: str = "US"
 
     @classmethod
     def connect(cls, project: str, dataset: str, endpoint: str | None = None) -> Warehouse:
@@ -54,14 +58,16 @@ class Warehouse:
             credentials=AnonymousCredentials(),  # type: ignore[no-untyped-call]
             client_options=ClientOptions(api_endpoint=endpoint),
         )
-        return cls(client, dataset)
+        return cls(client, dataset, emulated=True)
 
     @property
     def qualified(self) -> str:
         return f"{self.client.project}.{self.dataset}"
 
     def create(self, lake: Path) -> None:
-        self.client.create_dataset(self.qualified, exists_ok=True)
+        dataset = bigquery.Dataset(self.qualified)
+        dataset.location = self.location
+        self.client.create_dataset(dataset, exists_ok=True)
         for name in CLUSTERING:
             table = bigquery.Table(f"{self.qualified}.{name}", schema=_schema(lake / name))
             # Partitioned on the run's start time, the column every history
@@ -71,6 +77,8 @@ class Warehouse:
             self.client.create_table(table, exists_ok=True)
 
     def load(self, lake: Path, batch: int = 5000) -> dict[str, int]:
+        if not self.emulated:
+            return self._load_jobs(lake)
         loaded: dict[str, int] = {}
         for name in CLUSTERING:
             total = 0
@@ -80,6 +88,36 @@ class Warehouse:
                     raise RuntimeError(f"{name}: {errors[:3]}")
                 total += len(rows)
             loaded[name] = total
+        return loaded
+
+    def _load_jobs(self, lake: Path) -> dict[str, int]:
+        """Load each table with one Parquet load job, replacing what was there.
+
+        Load jobs are free where streaming inserts are not, and truncating
+        makes a rerun idempotent instead of doubling every row. The date
+        column lives in the lake's directory names, so the table is read
+        through the partitioning and written as one file that carries it.
+        """
+        loaded: dict[str, int] = {}
+        for name in CLUSTERING:
+            table = ds.dataset(lake / name, format="parquet", partitioning="hive").to_table()
+            table = table.set_column(
+                table.schema.get_field_index("date"),
+                "date",
+                table.column("date").cast(pa.string()),
+            )
+            buffer = io.BytesIO()
+            pq.write_table(table, buffer)
+            buffer.seek(0)
+            config = bigquery.LoadJobConfig(
+                source_format=bigquery.SourceFormat.PARQUET,
+                write_disposition=bigquery.WriteDisposition.WRITE_TRUNCATE,
+            )
+            job = self.client.load_table_from_file(
+                buffer, f"{self.qualified}.{name}", job_config=config, location=self.location
+            )
+            job.result()
+            loaded[name] = table.num_rows
         return loaded
 
     def rollup(self, name: str) -> list[dict[str, Any]]:

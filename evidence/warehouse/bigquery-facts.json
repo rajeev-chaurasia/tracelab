@@ -1,0 +1,51 @@
+{
+  "approx_quantiles_probe": {
+    "bigquery": [
+      1.0,
+      2.0,
+      3.0,
+      10.0,
+      100.0
+    ],
+    "emulator": [
+      1.0,
+      2.0,
+      10.0,
+      100.0,
+      3.0
+    ],
+    "sql": "SELECT APPROX_QUANTILES(x, 4) AS q FROM UNNEST([1.0, 2.0, 10.0, 100.0, 3.0]) AS x"
+  },
+  "partition_pruning_dry_run_bytes": {
+    "note": "Dry-run estimates. All data sits in two daily partitions, so a filter inside the busier day prunes nothing and costs the started_at column; a filter that excludes a day prunes it.",
+    "only_2026_10_06": 698940,
+    "v3_window_inside_2026_10_07": 8258440,
+    "whole_history": 6606900
+  },
+  "runs": {
+    "bytes": 378972,
+    "clustering": [
+      "benchmark",
+      "hardware_class",
+      "status"
+    ],
+    "partitioning": {
+      "field": "started_at",
+      "type": "DAY"
+    },
+    "rows": 1346
+  },
+  "samples": {
+    "bytes": 45476865,
+    "clustering": [
+      "benchmark",
+      "hardware_class",
+      "metric_name"
+    ],
+    "partitioning": {
+      "field": "started_at",
+      "type": "DAY"
+    },
+    "rows": 293810
+  }
+}
