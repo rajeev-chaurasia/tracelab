@@ -137,9 +137,13 @@ def validate(version: Version) -> bool:
 
 def main(names: list[str]) -> int:
     chosen = [VERSIONS[n] for n in names] if names else list(VERSIONS.values())
-    published = [v for v in chosen if (v.out / "decisions.jsonl").exists()]
-    results = [validate(v) for v in published]
-    return 0 if all(results) else 1
+    # Every defined version must be published. Skipping one with no decisions
+    # would let a published failure be erased by deleting a single file.
+    missing = [v.name for v in chosen if not (v.out / "decisions.jsonl").exists()]
+    for name in missing:
+        print(f"{name}  FAILED  decisions.jsonl is missing")
+    results = [validate(v) for v in chosen if v.name not in missing]
+    return 0 if all(results) and not missing else 1
 
 
 if __name__ == "__main__":

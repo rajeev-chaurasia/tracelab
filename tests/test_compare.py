@@ -267,3 +267,41 @@ def test_without_the_policy_flag_confirmation_is_ignored() -> None:
 
     assert result.verdict is Verdict.REGRESSION
     assert result.confirmation is None
+
+
+def test_the_headline_names_the_metric_that_decided() -> None:
+    policy = BenchmarkPolicy(
+        benchmark="matmul",
+        n_boot=500,
+        metrics=[
+            MetricPolicy(
+                metric="max_rss", statistic="median", threshold=0.05, role=MetricClass.GUARDRAIL
+            ),
+            MetricPolicy(metric="latency", statistic="median", threshold=0.03),
+        ],
+    )
+    slow_and_heavy = [
+        r.with_metrics({"max_rss": replace(r.metrics["max_rss"], values=(130.0,))})
+        for r in candidates(11.0)
+    ]
+    heavy_only = [
+        r.with_metrics({"max_rss": replace(r.metrics["max_rss"], values=(130.0,))})
+        for r in candidates(10.0)
+    ]
+
+    regression = compare(slow_and_heavy, BASELINE, policy)
+    warning = compare(heavy_only, BASELINE, policy)
+
+    assert regression.verdict is Verdict.REGRESSION
+    assert regression.reason.startswith("latency.median:")
+    assert warning.verdict is Verdict.WARNING
+    assert warning.reason.startswith("max_rss.median:")
+
+
+def test_a_hand_built_baseline_with_a_failed_run_is_refused() -> None:
+    poisoned = Selection([*BASELINE.runs[:19], replace(BASELINE.runs[19], status="INVALID")])
+
+    result = compare(candidates(11.0), poisoned, POLICY)
+
+    assert result.verdict is Verdict.INCONCLUSIVE
+    assert "is INVALID" in result.reason

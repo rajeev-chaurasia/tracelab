@@ -11,9 +11,11 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import sys
 import zlib
 from collections import Counter, defaultdict
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 from typing import Any
 
@@ -30,8 +32,14 @@ from tracelab.ingest.store import read_store
 
 
 def manifest_lines(version: Version) -> list[str]:
+    # The corpus directory, not only its store, so a contention log next to
+    # the store is covered by the same check as the runs it describes.
     files = sorted(
-        [*version.corpus.rglob("*"), *version.out.glob("*"), *version.policies.glob("*.toml")]
+        [
+            *version.corpus.parent.rglob("*"),
+            *version.out.glob("*"),
+            *version.policies.glob("*.toml"),
+        ]
     )
     return [
         f"{hashlib.sha256(f.read_bytes()).hexdigest()}  {f.as_posix()}"
@@ -46,6 +54,10 @@ def load_corpus(store: Path) -> dict[str, list[Run]]:
         if outcome.artifact is None:
             raise SystemExit(f"corpus run {outcome.run_id} was not accepted: {outcome.rejection}")
         run = from_artifact(outcome.artifact)
+        if run.status != "SUCCEEDED":
+            # Cases slice the corpus into baselines directly, without the
+            # selection step that would otherwise leave such a run out.
+            raise SystemExit(f"corpus run {run.run_id} is {run.status}; the corpus must be clean")
         corpus[run.benchmark].append(run)
     return {name: sorted(runs, key=lambda r: r.started_at) for name, runs in corpus.items()}
 
@@ -98,9 +110,20 @@ def decide(
     return row
 
 
-def decisions_for(version: Version) -> list[dict[str, Any]]:
+def _decide_share(
+    name: str, share: int, shares: int, only: tuple[str, ...] | None = None
+) -> list[dict[str, Any]]:
+    """Every decision for every case whose position modulo `shares` is `share`.
+
+    Each worker rebuilds the corpus and the cases itself, because a case
+    carries its transform as a closure and cannot be pickled. Every random
+    stream is seeded from the case id, so which worker scores a case cannot
+    change its decision, and the validator would catch it if it did.
+    """
+    version = VERSIONS[name]
     corpus = load_corpus(version.corpus)
     policies = load_policies(version.policies)
+    comparators = [c for c in version.comparators if only is None or c.name in only]
     return [
         decide(
             case,
@@ -108,9 +131,46 @@ def decisions_for(version: Version) -> list[dict[str, Any]]:
             policies[case.kind.benchmark],
             version.exposure(case.start) if version.exposure else None,
         )
-        for case in cases(corpus, version.confirmation_gap)
-        for comparator in version.comparators
+        for position, case in enumerate(cases(corpus, version.confirmation_gap))
+        if position % shares == share
+        for comparator in comparators
     ]
+
+
+def decisions_for(
+    version: Version, workers: int | None = None, only: tuple[str, ...] | None = None
+) -> list[dict[str, Any]]:
+    """Every decision for a version, scored across `workers` processes.
+
+    `only` restricts the comparators by name, which the tests use to check
+    the parallel path without running every bootstrap.
+    """
+    # Capped, because every worker holds its own copy of the corpus and its
+    # bootstrap arrays, and ten of them on a 16 GB machine ran out of memory.
+    shares = workers or min(os.cpu_count() or 1, int(os.environ.get("TRACELAB_WORKERS", "4")))
+    if shares == 1:
+        return _decide_share(version.name, 0, 1, only)
+    with ProcessPoolExecutor(max_workers=shares) as pool:
+        parts = list(
+            pool.map(
+                _decide_share,
+                [version.name] * shares,
+                range(shares),
+                [shares] * shares,
+                [only] * shares,
+            )
+        )
+    # Put the rows back in the order a single process produces: case by case,
+    # and within a case comparator by comparator.
+    per_case = len([c for c in version.comparators if only is None or c.name in only])
+    ordered: list[dict[str, Any]] = []
+    cursors = [0] * shares
+    for position in range(sum(len(p) for p in parts) // per_case):
+        share = position % shares
+        start = cursors[share]
+        ordered.extend(parts[share][start : start + per_case])
+        cursors[share] = start + per_case
+    return ordered
 
 
 def summarize(decisions: list[dict[str, Any]]) -> dict[str, Any]:

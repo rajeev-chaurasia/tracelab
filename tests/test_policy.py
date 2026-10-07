@@ -91,3 +91,8 @@ def test_loads_a_policy_file(tmp_path: Path) -> None:
 def test_rejects_an_unknown_statistic_at_load_time() -> None:
     with pytest.raises(ValidationError):
         MetricPolicy(metric="latency_ms", statistic="p999x", threshold=0.03)
+
+
+def test_an_undecided_blocking_guardrail_is_not_a_pass() -> None:
+    assert rollup([(C, V.PASS), (G, V.INCONCLUSIVE)], True) is V.INCONCLUSIVE
+    assert rollup([(C, V.PASS), (G, V.INCONCLUSIVE)], False) is V.PASS

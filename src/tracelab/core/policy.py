@@ -123,7 +123,9 @@ def rollup(verdicts: list[tuple[MetricClass, Verdict]], guardrails_block: bool) 
         return Verdict.INCOMPARABLE
     if any(v is Verdict.REGRESSION and role in blocking for role, v in counted):
         return Verdict.REGRESSION
-    if any(v is Verdict.INCONCLUSIVE and role is MetricClass.CRITICAL for role, v in counted):
+    # A metric that would block on a regression has to block on not knowing,
+    # or uncertainty about it rounds silently to a pass.
+    if any(v is Verdict.INCONCLUSIVE and role in blocking for role, v in counted):
         return Verdict.INCONCLUSIVE
     if any(v in {Verdict.REGRESSION, Verdict.WARNING} for _, v in counted):
         return Verdict.WARNING

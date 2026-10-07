@@ -16,7 +16,15 @@ import numpy as np
 from . import jitter, stats
 from .baseline import Selection
 from .compat import blocking, mismatches
-from .policy import BenchmarkPolicy, MetricPolicy, Verdict, blocking_roles, classify, rollup
+from .policy import (
+    BenchmarkPolicy,
+    MetricClass,
+    MetricPolicy,
+    Verdict,
+    blocking_roles,
+    classify,
+    rollup,
+)
 from .run import Run
 from .stats import Estimate, Mode, Statistic
 
@@ -116,6 +124,30 @@ def _metric(
         f"threshold {policy.threshold * scale:.2f}{unit}"
     )
     return MetricResult(policy, verdict, reason, estimate, noise)
+
+
+def _decisive(
+    results: list[MetricResult], verdict: Verdict, policy: BenchmarkPolicy
+) -> MetricResult | None:
+    """The metric the run verdict came from, so the headline never names a bystander.
+
+    Blocking metrics are preferred, since a REGRESSION or INCONCLUSIVE run
+    verdict can only come from one. A WARNING can come from a non-blocking
+    guardrail's REGRESSION, so that is accepted as its source.
+    """
+    roles = blocking_roles(policy.guardrails_block)
+    matching = [m for m in results if m.verdict is verdict]
+    blocking = [m for m in matching if m.policy.role in roles]
+    if blocking:
+        return blocking[0]
+    if verdict is Verdict.WARNING:
+        demoted = [
+            m for m in results if m.verdict is Verdict.REGRESSION and m.policy.role not in roles
+        ]
+        if demoted:
+            return demoted[0]
+    counted = [m for m in matching if m.policy.role is not MetricClass.INFORMATIONAL]
+    return counted[0] if counted else None
 
 
 def _regressed(result: Comparison, policy: BenchmarkPolicy) -> set[str]:
@@ -224,6 +256,16 @@ def _compare_batch(
                 selection,
             )
 
+    unfit_base = [r for r in selection.runs if r.status != "SUCCEEDED"]
+    if unfit_base:
+        # baseline.select already leaves these out. A caller that builds a
+        # Selection by hand gets the same rule rather than a quiet bypass.
+        return _stop(
+            Verdict.INCONCLUSIVE,
+            f"baseline run {unfit_base[0].run_id} is {unfit_base[0].status}, never an input",
+            candidates,
+            selection,
+        )
     if not selection.runs and selection.disqualified_by_environment:
         return _stop(
             Verdict.INCOMPARABLE,
@@ -257,7 +299,7 @@ def _compare_batch(
         for i, metric in enumerate(policy.metrics)
     ]
     verdict = rollup([(m.policy.role, m.verdict) for m in results], policy.guardrails_block)
-    decisive = next((m for m in results if m.verdict is verdict), None)
+    decisive = _decisive(results, verdict, policy)
     reason = f"{decisive.policy.label}: {decisive.reason}" if decisive else verdict.value
     drift = sorted({str(m) for r in baseline for m in mismatches(reference, r)})
 

@@ -5,6 +5,7 @@ cannot see an edit, would make every published number meaningless, so both
 are tested against inputs whose answers are known.
 """
 
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -170,3 +171,29 @@ def test_a_published_failure_is_pinned_to_its_count() -> None:
     assert check_claim(decisions[:9], pinned=10) == [
         "published as 10 false regressions, decisions show 9"
     ]
+
+
+def test_parallel_scoring_matches_one_process_row_for_row() -> None:
+    from evaluation.score import decisions_for
+    from evaluation.versions import VERSIONS
+
+    naive = ("fixed_5pct_window", "fixed_5pct_previous_run")
+    serial = decisions_for(VERSIONS["v1"], workers=1, only=naive)
+    parallel = decisions_for(VERSIONS["v1"], workers=3, only=naive)
+
+    assert len(serial) == 2 * len({d["case_id"] for d in serial})
+    assert parallel == serial
+
+
+def test_a_version_with_its_decisions_deleted_fails_validation(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    from dataclasses import replace as swap
+
+    from evaluation import versions
+    from script import validate_evidence
+
+    gone = swap(versions.VERSIONS["v3"], out=tmp_path / "nowhere")
+    monkeypatch.setitem(versions.VERSIONS, "v3", gone)
+
+    assert validate_evidence.main(["v3"]) == 1
