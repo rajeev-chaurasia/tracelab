@@ -115,12 +115,19 @@ def summarize(decisions: list[dict[str, Any]]) -> dict[str, Any]:
         false_alarms = [
             d for d in rows if d["verdict"] == "REGRESSION" and "REGRESSION" not in d["allowed"]
         ]
+        # An improvement called on code that did not get faster blocks nothing,
+        # but it is the same overconfidence as a false regression pointed the
+        # other way, so it is counted where a reader will see it.
+        false_improvements = [
+            d for d in rows if d["verdict"] == "IMPROVEMENT" and "IMPROVEMENT" not in d["allowed"]
+        ]
         must_catch = [d for d in rows if d["allowed"] == ["REGRESSION"]]
         same_code = [d for d in rows if d["kind"] == "same_code"]
         out["comparators"][name] = {
             "cases": len(rows),
             "correct": sum(d["correct"] for d in rows),
             "false_regressions": len(false_alarms),
+            "false_improvements": len(false_improvements),
             "same_code_cases": len(same_code),
             "same_code_false_regressions": sum(d["verdict"] == "REGRESSION" for d in same_code),
             "regressions_to_catch": len(must_catch),
@@ -167,13 +174,14 @@ def render(summary: dict[str, Any], corpus: dict[str, Any]) -> str:
     lines += ["", "## Headline", ""]
     lines += [
         "| comparator | correct | false regressions | same-code false regressions "
-        "| regressions caught | regressions inconclusive |",
-        "| --- | ---: | ---: | ---: | ---: | ---: |",
+        "| false improvements | regressions caught | regressions inconclusive |",
+        "| --- | ---: | ---: | ---: | ---: | ---: | ---: |",
     ]
     for name, s in summary["comparators"].items():
         lines.append(
             f"| {name} | {s['correct']}/{s['cases']} | {s['false_regressions']} "
             f"| {s['same_code_false_regressions']}/{s['same_code_cases']} "
+            f"| {s['false_improvements']} "
             f"| {s['regressions_caught']}/{s['regressions_to_catch']} "
             f"| {s['regressions_inconclusive']} |"
         )
