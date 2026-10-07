@@ -22,6 +22,7 @@ from typing import Any
 
 from .base import Collector, Sample
 from .clock import MONOTONIC, WALL, Mapping, Reading, fit, sample
+from .ebpf import RunQueueCollector
 from .process import ProcessSampler
 from .system import SystemSampler
 from .timeline import Aligned, align
@@ -75,7 +76,11 @@ def _workload_samples(stdout: str, t0_ns: int) -> list[Sample]:
 
 
 def record(
-    command: list[str], *, sync_interval_s: float = 0.1, timeout_s: float = 120
+    command: list[str],
+    *,
+    sync_interval_s: float = 0.1,
+    timeout_s: float = 120,
+    ebpf: bool = False,
 ) -> Recording:
     readings: list[Reading] = []
     done = threading.Event()
@@ -94,15 +99,19 @@ def record(
 
     with tempfile.TemporaryDirectory() as scratch:
         t0_file = Path(scratch) / "t0"
+        gate = Path(scratch) / "go"
         proc = subprocess.Popen(
             command,
             stdout=subprocess.PIPE,
             text=True,
-            env={**os.environ, "TRACELAB_T0_FILE": str(t0_file)},
+            env={**os.environ, "TRACELAB_T0_FILE": str(t0_file), "TRACELAB_GATE_FILE": str(gate)},
         )
         collectors: list[Collector] = [ProcessSampler(proc.pid)]
+        if ebpf:
+            collectors.append(RunQueueCollector(proc.pid))
         for c in collectors:
             c.start()
+        gate.touch()
         stdout, _ = proc.communicate(timeout=timeout_s)
         for c in collectors:
             c.stop()

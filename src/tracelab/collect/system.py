@@ -32,7 +32,9 @@ while True:
 class SystemSampler:
     name = "system"
 
-    def __init__(self, interval_s: float = 0.05) -> None:
+    # Linux accounts CPU time in 10 ms ticks, so a shorter interval reports
+    # each core's utilisation in coarse steps of whole ticks.
+    def __init__(self, interval_s: float = 0.25) -> None:
         self.interval_s = interval_s
         self._proc: subprocess.Popen[str] | None = None
         self._lines: list[str] = []

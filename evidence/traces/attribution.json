@@ -1,0 +1,36 @@
+{
+  "periodic-ebpf-contended.json": {
+    "correlation_interval_vs_worst_wait": 0.5577702440146929,
+    "late_ticks": 90,
+    "late_wait_to_overrun_ratio": 1.4140145377313433,
+    "preemptions": 6399,
+    "runq_wait_us": {
+      "max": 35999.167,
+      "p50": 17.542,
+      "p99": 11908.25
+    },
+    "runq_waits": 6401,
+    "ticks": 150,
+    "worst_wait_in_tick_us": {
+      "late_median": 10487.2915,
+      "on_time_median": 4865.416499999999
+    }
+  },
+  "periodic-ebpf.json": {
+    "correlation_interval_vs_worst_wait": 0.2533016981520958,
+    "late_ticks": 0,
+    "late_wait_to_overrun_ratio": null,
+    "preemptions": 189,
+    "runq_wait_us": {
+      "max": 1670.625,
+      "p50": 24.416,
+      "p99": 813.1669999999999
+    },
+    "runq_waits": 351,
+    "ticks": 150,
+    "worst_wait_in_tick_us": {
+      "late_median": null,
+      "on_time_median": 18.25
+    }
+  }
+}

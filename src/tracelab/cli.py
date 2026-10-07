@@ -60,6 +60,9 @@ def record(
     out: Annotated[Path, typer.Option(help="where to write the Perfetto trace")] = Path(
         "trace.json"
     ),
+    ebpf: Annotated[
+        bool, typer.Option(help="add eBPF run-queue latency; Linux with privileges only")
+    ] = False,
 ) -> None:
     """Run a benchmark with every collector attached and write one aligned trace.
 
@@ -67,7 +70,7 @@ def record(
     the Perfetto UI; the alignment error bound is printed so a reader knows
     how far apart two events on different tracks can be trusted to be.
     """
-    recording = run_recording(command)
+    recording = run_recording(command, ebpf=ebpf)
     write_perfetto(recording.aligned, recording.origin_ns, " ".join(command), out)
     counts = ", ".join(f"{n} {source}" for source, n in sorted(recording.counts().items()))
     typer.echo(f"wrote {out}: {counts} samples")

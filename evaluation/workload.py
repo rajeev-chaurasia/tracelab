@@ -36,6 +36,12 @@ def _origin() -> int:
     A recorder sets TRACELAB_T0_FILE so it can place this process's samples on
     its own timeline. Without it the workload behaves exactly as before.
     """
+    gate = os.environ.get("TRACELAB_GATE_FILE")
+    if gate:
+        # A recorder whose collectors take time to attach, such as eBPF,
+        # holds the workload here until they are all listening.
+        while not os.path.exists(gate):
+            time.sleep(0.005)
     t0 = time.monotonic_ns()
     target = os.environ.get("TRACELAB_T0_FILE")
     if target:
