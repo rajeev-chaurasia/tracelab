@@ -46,6 +46,9 @@ class Case:
     start: int
     baseline: list[Run]
     candidates: list[Run]
+    # A second batch of the same revision, taken from later in the corpus, or
+    # None when the version being scored has no confirmation step.
+    confirmation: list[Run] | None = None
 
 
 def _map(runs: list[Run], metric: str, fn: Callable[[np.ndarray], np.ndarray]) -> list[Run]:
@@ -202,15 +205,29 @@ KINDS: list[Kind] = [
 ]
 
 
-def cases(corpus: dict[str, list[Run]]) -> Iterator[Case]:
+def cases(corpus: dict[str, list[Run]], confirmation_gap: int | None = None) -> Iterator[Case]:
+    """Every window of every kind.
+
+    With a confirmation gap, the confirmation batch starts that many runs after
+    the first batch ends. The transform is applied to both batches in one call,
+    because an injected regression is a property of the code and has to be in
+    both, and a transform that draws random numbers must not draw them twice
+    for the baseline.
+    """
     for kind in KINDS:
         runs = corpus[kind.benchmark]
-        last = len(runs) - BASELINE_RUNS - CANDIDATE_RUNS
+        tail = 0 if confirmation_gap is None else confirmation_gap + kind.candidates
+        last = len(runs) - BASELINE_RUNS - CANDIDATE_RUNS - tail
         for start in range(0, last + 1, STRIDE):
             case_id = f"{kind.benchmark}/{kind.name}/w{start:02d}"
             rng = np.random.default_rng(zlib.crc32(case_id.encode()))
             baseline = runs[start : start + BASELINE_RUNS]
-            following = runs[start + BASELINE_RUNS : start + BASELINE_RUNS + kind.candidates]
-            candidates = [replace(r, revision=CANDIDATE_REVISION) for r in following]
-            baseline, candidates = kind.transform(baseline, candidates, rng)
-            yield Case(case_id, kind, start, baseline, candidates)
+            first_at = start + BASELINE_RUNS
+            batch = runs[first_at : first_at + kind.candidates]
+            if confirmation_gap is not None:
+                second_at = first_at + kind.candidates + confirmation_gap
+                batch = batch + runs[second_at : second_at + kind.candidates]
+            batch = [replace(r, revision=CANDIDATE_REVISION) for r in batch]
+            baseline, batch = kind.transform(baseline, batch, rng)
+            first, second = batch[: kind.candidates], batch[kind.candidates :]
+            yield Case(case_id, kind, start, baseline, first, second or None)

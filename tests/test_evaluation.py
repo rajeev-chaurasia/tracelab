@@ -134,3 +134,39 @@ def test_summary_counts_come_only_from_decisions() -> None:
     assert s["same_code_false_regressions"] == 0
     assert (s["regressions_caught"], s["regressions_to_catch"]) == (1, 2)
     assert s["regressions_inconclusive"] == 1
+
+
+def test_a_confirmation_batch_comes_later_and_carries_the_injected_change() -> None:
+    corpus = {
+        "matmul": [run(i, metrics={c.LAT: [10.0] * 5, c.RSS: [1.0] * 5}) for i in range(60)],
+        "periodic": [run(i, metrics={c.TICK: [c.PERIOD] * 5}) for i in range(60)],
+    }
+
+    built = [x for x in c.cases(corpus, confirmation_gap=18) if x.kind.name == "latency_+10%"]
+
+    assert built
+    for case in built:
+        assert case.confirmation is not None
+        first_end = int(case.candidates[-1].run_id.split("-")[1])
+        second_start = int(case.confirmation[0].run_id.split("-")[1])
+        assert second_start - first_end - 1 == 18
+        assert all(r.metrics[c.LAT].values[0] == pytest.approx(11.0) for r in case.confirmation)
+        assert all(r.revision == c.CANDIDATE_REVISION for r in case.confirmation)
+
+
+def test_without_a_gap_there_is_no_confirmation_batch() -> None:
+    corpus = {
+        "matmul": [run(i, metrics={c.LAT: [10.0] * 5, c.RSS: [1.0] * 5}) for i in range(30)],
+        "periodic": [run(i, metrics={c.TICK: [c.PERIOD] * 5}) for i in range(30)],
+    }
+
+    assert all(case.confirmation is None for case in c.cases(corpus))
+
+
+def test_a_published_failure_is_pinned_to_its_count() -> None:
+    decisions = [decision("tracelab", "same_code", "REGRESSION", ["PASS"])] * 10
+
+    assert check_claim(decisions, pinned=10) == []
+    assert check_claim(decisions[:9], pinned=10) == [
+        "published as 10 false regressions, decisions show 9"
+    ]

@@ -26,3 +26,6 @@ jobs:
       - run: ruby script/check_prose.rb
       - run: uv run python script/check_layers.py
       - run: uv run pytest --cov --cov-report=term-missing
+      # Reruns every published decision from the committed corpus. It is the
+      # slowest step and the one the README's numbers depend on.
+      - run: uv run python -m script.validate_evidence

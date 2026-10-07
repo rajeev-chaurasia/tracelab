@@ -2,16 +2,16 @@
 
 The summary is computed from decisions.jsonl and nothing else, so the
 validator can recompute it from the same file and reject a summary that was
-edited, and can rerun the TraceLab rows from the corpus and reject a decision
-that was.
+edited, and can rerun every row from the corpus and reject a decision that was.
 
-    uv run python -m evaluation.score
+    uv run python -m evaluation.score v2
 """
 
 from __future__ import annotations
 
 import hashlib
 import json
+import sys
 import zlib
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -20,29 +20,27 @@ from typing import Any
 import numpy as np
 
 from evaluation.cases import Case, cases
-from evaluation.comparators import COMPARATORS, Comparator
+from evaluation.comparators import Comparator
+from evaluation.versions import VERSIONS, Version
 from tracelab.core.compare import Comparison
 from tracelab.core.policy import BenchmarkPolicy, Verdict
 from tracelab.core.run import Run, from_artifact
 from tracelab.core.stats import Statistic, run_noise
 from tracelab.ingest.store import read_store
 
-STORE = Path("corpus/store")
-POLICIES = Path("policies")
-OUT = Path("evidence/eval")
-MANIFEST = Path("evidence/MANIFEST.sha256")
 
-
-def manifest_lines() -> list[str]:
-    files = sorted([*STORE.rglob("*"), *OUT.glob("*"), *POLICIES.glob("*.toml")])
+def manifest_lines(version: Version) -> list[str]:
+    files = sorted(
+        [*version.corpus.rglob("*"), *version.out.glob("*"), *version.policies.glob("*.toml")]
+    )
     return [
         f"{hashlib.sha256(f.read_bytes()).hexdigest()}  {f.as_posix()}"
         for f in files
-        if f.is_file()
+        if f.is_file() and f != version.manifest
     ]
 
 
-def load_corpus(store: Path = STORE) -> dict[str, list[Run]]:
+def load_corpus(store: Path) -> dict[str, list[Run]]:
     corpus: dict[str, list[Run]] = defaultdict(list)
     for outcome in read_store(store):
         if outcome.artifact is None:
@@ -52,8 +50,8 @@ def load_corpus(store: Path = STORE) -> dict[str, list[Run]]:
     return {name: sorted(runs, key=lambda r: r.started_at) for name, runs in corpus.items()}
 
 
-def load_policies() -> dict[str, BenchmarkPolicy]:
-    policies = [BenchmarkPolicy.load(p) for p in sorted(POLICIES.glob("*.toml"))]
+def load_policies(directory: Path) -> dict[str, BenchmarkPolicy]:
+    policies = [BenchmarkPolicy.load(p) for p in sorted(directory.glob("*.toml"))]
     return {p.benchmark: p for p in policies}
 
 
@@ -62,10 +60,8 @@ def seed_for(case_id: str) -> int:
 
 
 def decide(case: Case, comparator: Comparator, policy: BenchmarkPolicy) -> dict[str, Any]:
-    result: Comparison = comparator.run(
-        case.baseline, case.candidates, policy, seed_for(case.case_id)
-    )
-    return {
+    result: Comparison = comparator.run(case, policy, seed_for(case.case_id))
+    row: dict[str, Any] = {
         "case_id": case.case_id,
         "benchmark": case.kind.benchmark,
         "kind": case.kind.name,
@@ -90,6 +86,22 @@ def decide(case: Case, comparator: Comparator, policy: BenchmarkPolicy) -> dict[
         "baseline_runs": [r.run_id for r in case.baseline],
         "candidate_runs": [r.run_id for r in case.candidates],
     }
+    # Only versions with a confirmation step carry these, so v1's published
+    # rows keep the exact shape they were published in.
+    if case.confirmation is not None:
+        row["confirmation_runs"] = [r.run_id for r in case.confirmation]
+        row["confirmed_by"] = result.confirmation.verdict.value if result.confirmation else None
+    return row
+
+
+def decisions_for(version: Version) -> list[dict[str, Any]]:
+    corpus = load_corpus(version.corpus)
+    policies = load_policies(version.policies)
+    return [
+        decide(case, comparator, policies[case.kind.benchmark])
+        for case in cases(corpus, version.confirmation_gap)
+        for comparator in version.comparators
+    ]
 
 
 def summarize(decisions: list[dict[str, Any]]) -> dict[str, Any]:
@@ -176,27 +188,22 @@ def render(summary: dict[str, Any], corpus: dict[str, Any]) -> str:
     return "\n".join(lines) + "\n"
 
 
-def main() -> None:
-    corpus = load_corpus()
-    policies = load_policies()
-    decisions = [
-        decide(case, comparator, policies[case.kind.benchmark])
-        for case in cases(corpus)
-        for comparator in COMPARATORS
-    ]
+def main(name: str) -> None:
+    version = VERSIONS[name]
+    decisions = decisions_for(version)
     summary = summarize(decisions)
-    described = describe_corpus(corpus)
-    OUT.mkdir(parents=True, exist_ok=True)
-    with (OUT / "decisions.jsonl").open("w", encoding="utf-8") as handle:
+    described = describe_corpus(load_corpus(version.corpus))
+    version.out.mkdir(parents=True, exist_ok=True)
+    with (version.out / "decisions.jsonl").open("w", encoding="utf-8") as handle:
         for d in decisions:
             handle.write(json.dumps(d, sort_keys=True) + "\n")
-    (OUT / "summary.json").write_text(
+    (version.out / "summary.json").write_text(
         json.dumps({"corpus": described, **summary}, indent=2, sort_keys=True) + "\n"
     )
-    (OUT / "summary.md").write_text(render(summary, described))
-    MANIFEST.write_text("\n".join(manifest_lines()) + "\n")
-    print((OUT / "summary.md").read_text())
+    (version.out / "summary.md").write_text(render(summary, described))
+    version.manifest.write_text("\n".join(manifest_lines(version)) + "\n")
+    print((version.out / "summary.md").read_text())
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1])

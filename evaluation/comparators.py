@@ -12,6 +12,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from evaluation.cases import Case
 from tracelab.core import jitter
 from tracelab.core.baseline import Selection
 from tracelab.core.compare import Comparison, MetricResult, compare
@@ -27,15 +28,22 @@ NAIVE_THRESHOLD = 0.05
 class Comparator:
     name: str
     describe: str
-    run: Callable[[list[Run], list[Run], BenchmarkPolicy, int], Comparison]
+    run: Callable[[Case, BenchmarkPolicy, int], Comparison]
 
 
-def _tracelab(base: list[Run], cand: list[Run], policy: BenchmarkPolicy, seed: int) -> Comparison:
-    return compare(cand, Selection(base), policy, seed=seed)
+def _tracelab(case: Case, policy: BenchmarkPolicy, seed: int) -> Comparison:
+    return compare(
+        case.candidates, Selection(case.baseline), policy, seed=seed, confirmation=case.confirmation
+    )
 
 
-def _pooled(base: list[Run], cand: list[Run], policy: BenchmarkPolicy, seed: int) -> Comparison:
-    return compare(cand, Selection(base), policy, seed=seed, pool=True)
+def _one_batch(case: Case, policy: BenchmarkPolicy, seed: int) -> Comparison:
+    single = policy.model_copy(update={"confirm_regressions": False})
+    return compare(case.candidates, Selection(case.baseline), single, seed=seed)
+
+
+def _pooled(case: Case, policy: BenchmarkPolicy, seed: int) -> Comparison:
+    return compare(case.candidates, Selection(case.baseline), policy, seed=seed, pool=True)
 
 
 def _point(policy: MetricPolicy, base: list[Run], cand: list[Run]) -> MetricResult:
@@ -72,20 +80,27 @@ def _naive(base: list[Run], cand: list[Run], policy: BenchmarkPolicy) -> Compari
     )
 
 
-def _naive_window(base: list[Run], cand: list[Run], policy: BenchmarkPolicy, _: int) -> Comparison:
-    return _naive(base, cand, policy)
+def _naive_window(case: Case, policy: BenchmarkPolicy, _: int) -> Comparison:
+    return _naive(case.baseline, case.candidates, policy)
 
 
-def _previous_run(base: list[Run], cand: list[Run], policy: BenchmarkPolicy, _: int) -> Comparison:
-    return _naive(base[-1:], cand[:1], policy)
+def _previous_run(case: Case, policy: BenchmarkPolicy, _: int) -> Comparison:
+    return _naive(case.baseline[-1:], case.candidates[:1], policy)
 
 
-COMPARATORS = [
-    Comparator(
-        "tracelab",
-        "hierarchical bootstrap, decision table, noise and comparability gates",
-        _tracelab,
-    ),
+TRACELAB = Comparator(
+    "tracelab",
+    "hierarchical bootstrap, decision table, noise and comparability gates, and "
+    "confirmation when the policy asks for it",
+    _tracelab,
+)
+ONE_BATCH = Comparator(
+    "tracelab_one_batch",
+    "TraceLab with confirmation turned off, to show what confirmation is worth",
+    _one_batch,
+)
+
+BASELINES = [
     Comparator(
         "pooled_bootstrap",
         "the same gates and table, resampling samples as if independent",
