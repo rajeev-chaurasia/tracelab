@@ -76,10 +76,14 @@ def fit(readings: list[Reading]) -> Mapping:
     ys = [float(r.reference_ns) for r in readings]
     # Centred before fitting, because nanosecond epoch values squared lose
     # precision in a double long before the slope does.
-    mx, my = sum(xs) / len(xs), sum(ys) / len(ys)
-    sxx = sum((x - mx) ** 2 for x in xs)
-    slope = 1.0 if sxx == 0 else sum((x - mx) * (y - my) for x, y in zip(xs, ys, strict=True)) / sxx
-    offset = my - slope * mx
+    mean_x, mean_y = sum(xs) / len(xs), sum(ys) / len(ys)
+    sxx = sum((x - mean_x) ** 2 for x in xs)
+    slope = (
+        1.0
+        if sxx == 0
+        else sum((x - mean_x) * (y - mean_y) for x, y in zip(xs, ys, strict=True)) / sxx
+    )
+    offset = mean_y - slope * mean_x
     residual = max(abs(y - (offset + slope * x)) for x, y in zip(xs, ys, strict=True))
     return Mapping(
         slope=slope,

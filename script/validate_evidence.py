@@ -49,8 +49,8 @@ def check_decisions(version: Version, published: list[dict[str, Any]]) -> list[s
         return [f"{len(published)} decisions published, rerun produced {len(rerun)}"]
     return [
         f"{theirs['case_id']} {theirs['comparator']}: rerun disagrees"
-        for mine, theirs in zip(rerun, published, strict=True)
-        if mine != theirs
+        for recomputed, theirs in zip(rerun, published, strict=True)
+        if recomputed != theirs
     ]
 
 

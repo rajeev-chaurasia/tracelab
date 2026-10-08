@@ -5,8 +5,8 @@
 This plan is corrected against what the build and the evaluation established,
 rather than left as first written. The substantive changes:
 
-- **The run format is benchgrid's, not mine.** The first schema here was a
-  `RunResult` model of my own. It was retired in favour of benchgrid's run
+- **The run format is benchgrid's.** The first schema here was a separate
+  `RunResult` model. It was retired in favour of benchgrid's run
   artifact contract, read by the contract reader in `tracelab.core.contract`
   and `tracelab.ingest`, which was built separately. The analysis maps a
   validated artifact into `tracelab.core.run`.

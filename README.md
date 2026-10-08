@@ -1,176 +1,168 @@
 # tracelab
 
-Performance tracing and regression analysis for benchgrid's run artifacts,
-built so that its central claim can be checked rather than taken on trust.
+Performance tracing and regression analysis for benchgrid's run artifacts.
+TraceLab records a benchmark with several collectors on one aligned timeline,
+eBPF scheduler tracing and CUDA kernels included, decides whether a candidate
+revision regressed with a statistical engine built not to cry wolf, and keeps
+history in BigQuery behind Grafana dashboards.
 
-It records benchmarks with several collectors on one aligned timeline, eBPF
-scheduler tracing included, decides whether a candidate regressed with a
-statistical engine designed not to cry wolf, and keeps history in a
-BigQuery-dialect warehouse behind Grafana dashboards. The engine is the part
-the evidence is about.
+The engine is the part the evidence is about. Seven evaluations over 2,042 real
+benchmark runs, three of them on NVIDIA L4 GPUs, test it against the gates
+teams usually write, with every decision published and recomputed in CI.
 
 > On real benchmark runs, TraceLab returns REGRESSION only when two batches of
 > a candidate, run apart, both move past a metric's practical threshold by more
-> than the run-to-run noise the baseline itself shows. On a quiet machine that
-> held false regressions at zero. Under real contention it removed most of
-> them, not all: what is left, in every evaluation that failed, comes from
-> changes in the machine that outlast the gap between the two batches. A
-> canary and a device check, tested last, narrow that further and cost real
-> catches to do it.
+> than the run-to-run noise the baseline itself shows, and the environment did
+> not move with them. On a quiet machine that held false regressions at zero.
+> Under real contention it removed most of them, not all: what is left, in
+> every evaluation that failed, comes from changes in the machine the checks
+> could not see.
 
 A performance gate that fires on noise gets muted within a month, and a muted
-gate is worse than none because people still believe it is watching. So the
-evidence here is mostly about the other side of the promise: what happens when
-the code did not change and the machine was simply noisy.
+gate is worse than none because people still believe it is watching. So most of
+the evidence here is about the other side of the promise: what happens when the
+code did not change and the machine was simply noisy.
 
-There are seven published evaluations over 2,042 real benchmark runs, three of
-them on NVIDIA L4s. Six of them are failures, and all are kept exactly as they
-came out, each traced to its cause.
+## Results at a glance
+
+Each version's thresholds, cases and claim were committed before its corpus
+was collected, which the history shows. Six of the seven claims failed. Each
+failure is traced to its cause in [docs/evidence.md](docs/evidence.md) and
+pinned by the validator at its exact count, so it can neither be edited away
+nor drift.
 
 | version | what it tested | TraceLab false regressions | fixed 5% gates | outcome |
 | --- | --- | ---: | ---: | --- |
-| v1 | latency and jitter, no confirmation | 10 | 94 and 122 | failed, pinned at 10 |
-| v2 | the same, with confirmation, quiet machine | **0** | 88 and 110 | held |
+| v1 | latency and jitter, one batch | 10 | 94 and 122 | failed, pinned at 10 |
+| v2 | confirmation by a second batch, quiet laptop | **0** | 88 and 110 | **held** |
 | v3 | scheduled CPU bursts against confirmation | 3 on targeted windows, 20 overall | over 300 | failed, pinned at 3 |
-| v4 | rate metrics, higher is better, traces sealed | 11 | 141 and 208 | failed, pinned at 11 |
-| v5 | CUDA matmul on an L4, GPU telemetry sealed | 3, none on same code | 0 and 6 | failed, pinned at 3 |
-| v6 | a canary against long CPU bursts | 9 on targeted windows, against 29 without it | over 250 | failed, pinned at 9 |
+| v4 | rates where higher is better, traces sealed | 11 | 141 and 208 | failed, pinned at 11 |
+| v5 | CUDA matmul on an L4 | 3, none on same code | 0 and 6 | failed, pinned at 3 |
+| v6 | a canary benchmark against long CPU bursts | 9 targeted, against 29 without it | over 250 | failed, pinned at 9 |
 | v7 | a GPU clock check against a warming L4 | 2, against 4 without it | 0 and 6 | failed, pinned at 2 |
 
-## v3: real contention on a schedule fixed in advance
+Other comparators score every case alongside TraceLab: the same engine with
+each defence removed, a bootstrap that pools samples as if independent, and
+fixed 5% gates against a twenty-run window and against the previous run.
+Their false regressions are the reason TraceLab's mean anything, and the
+validator fails the build if the weaker comparators stop producing them.
 
-From `evidence/v3`: 546 real runs on an Apple M4 laptop, collected while the
-collector started one busy loop per core at fixed run indexes. Nine short
-bursts each hit exactly one window's first batch, with its baseline and its
-confirmation batch clean. One long burst covered both batches of one window.
-The schedule, the claim and the negative control were committed before the
-corpus was collected.
+## Architecture
 
-On the nine targeted windows, across every case kind where a regression would
-be wrong:
+```mermaid
+flowchart LR
+    subgraph capture["Capture"]
+        direction TB
+        rig["Benchmark rig<br/>laptop, Linux VM or L4 GPU"]
+        collectors["Collectors<br/>workload, process, system,<br/>eBPF, nvidia-smi, Nsight"]
+        timeline["Aligned timeline<br/>fitted clock mappings,<br/>measured error bound"]
+        rig --> collectors --> timeline
+    end
 
-| comparator | false regressions | injected regressions caught |
-| --- | ---: | ---: |
-| **tracelab** | **3 / 153** | 53 / 63 |
-| tracelab, one batch | 31 / 153 | 61 / 63 |
-| pooled bootstrap | 42 / 153 | 63 / 63 |
-| fixed 5%, twenty-run window | 74 / 153 | 63 / 63 |
-| fixed 5%, previous run | 64 / 153 | 61 / 63 |
+    subgraph store["Artifact store"]
+        direction TB
+        artifact[("Sealed run artifacts<br/>run.json, samples.jsonl,<br/>trace.json, manifest.json")]
+        reader["Contract reader<br/>rejects anything off contract"]
+        artifact --> reader
+    end
 
-**The pre-registered claim was zero, and it failed by three.** Confirmation
-removed 28 of the 31 false regressions the bursts caused. Over the whole v3
-corpus it took TraceLab from 59 false regressions to 20, against 96 for the
-pooled bootstrap and over 300 for either fixed gate.
+    subgraph analysis["Analysis core"]
+        direction TB
+        baseline["Baseline selection<br/>and comparability"]
+        engine["Hierarchical bootstrap<br/>and decision table"]
+        gates["Confirmation, canary<br/>and device checks"]
+        baseline --> engine --> gates
+    end
 
-Each of the three is traced in [docs/evidence.md](docs/evidence.md). Two are
-one periodic-loop window, counted under two case kinds, whose baseline ran in
-a quiet stretch of the machine and whose two batches both ran after an
-unscheduled shift that raised the share of
-late ticks from about 0.3% to about 13% for the remaining nine minutes of
-collection. The third is a real 2% slowdown, below the 3% threshold, that the
-machine's drift pushed past it in both batches. Neither is something a second
-batch can see through, and both are entries in
-[docs/known-misses.md](docs/known-misses.md) that v3 measured rather than
-argued.
+    subgraph history["History"]
+        direction TB
+        lake[("Parquet lake<br/>partitioned by date")]
+        bq[("BigQuery<br/>partitioned, clustered")]
+        prom["Prometheus backfill"]
+        grafana["Grafana dashboards"]
+        lake --> bq
+        lake --> prom --> grafana
+    end
 
-## v4: rates, and the cost of caution
+    report["Check report<br/>and CI exit code"]
+    perfetto["Perfetto UI"]
 
-From `evidence/v4`: 300 runs of a memory-bandwidth triad and a loopback TCP
-benchmark, judged on bandwidth and throughput, where higher is better, with
-every tenth run's aligned trace sealed in its artifact. Eleven false
-regressions against a claim of zero, all in windows where a two-minute
-disturbed stretch put a machine-wide slow run in both batches: at those
-indexes both unrelated benchmarks collapsed together, which only the machine
-can do. Memory bandwidth also moved 11.6% from run to run against a 5% limit,
-so TraceLab returned INCONCLUSIVE on most of its cases and caught 91 of 288
-injected regressions, where the fixed gates caught about 245 at the price of
-141 and 208 false ones.
+    timeline --> artifact
+    reader --> baseline
+    gates --> report
+    reader --> lake
+    timeline --> perfetto
 
-## v6 and v7: checking the environment
-
-Each failure above left its evidence in the data: two unrelated benchmarks
-collapsing together, a GPU clock still falling. ADR 0003 turns that into two
-checks on any would-be regression: a canary benchmark run alongside it, and
-device metrics the runs carry. Both were tested on fresh corpora collected
-after they were committed. The canary cut false regressions on long-burst
-windows from 29 to 9; every survivor was a network candidate whose
-memory-bandwidth canary did not feel the CPU contention. The clock check cut
-them on a warming L4 from 4 to 2; the survivors drifted inside its limit. Both
-cost catches, 78 of 496 against 210 in v6, because a regression measured while
-the machine moved is refused whether it is real or not.
-
-## v5: a real GPU
-
-From `evidence/v5`: 120 runs of fp16 matrix multiplies on an NVIDIA L4 in a GCP
-VM, timed with CUDA events, with nvidia-smi telemetry sealed in every tenth
-run. TraceLab passed all 26 same-code windows and caught 102 of 104 injected
-regressions. Its three false regressions were real 2% slowdowns called past
-the 3% threshold in the first windows, and the sealed telemetry shows why: the
-L4 was heating from 37 to 52 degrees and its SM clock under load was falling
-from 1,005 to 960 MHz. On a device this stable the simple window gate raised
-no false regression on same code either, so v5's negative control fails too,
-and the evidence says so rather than counting it as a win.
-
-## v2: a quiet machine
-
-From `evidence/v2`: 300 real runs, nothing scheduled.
-
-| comparator | false regressions | same-code false regressions | false improvements | regressions caught |
-| --- | ---: | ---: | ---: | ---: |
-| **tracelab** | **0** | **0 / 72** | 6 | 212 / 252 |
-| tracelab, one batch | 2 | 0 / 72 | 6 | 218 / 252 |
-| pooled bootstrap | 9 | 2 / 72 | 18 | 230 / 252 |
-| fixed 5%, twenty-run window | 88 | 3 / 72 | 80 | 219 / 252 |
-| fixed 5%, previous run | 110 | 4 / 72 | 61 | 211 / 252 |
-
-The machine was quiet, with run-to-run noise of the median at 0.22%, so v2
-shows the method holding when nothing goes wrong and says little about
-confirmation, which is why v3 exists. Six times TraceLab called a confident
-p95 improvement on unchanged code; that overconfidence with three candidate
-runs is a known miss.
-
-## v1: the first result, a failure
-
-From `evidence/v1`: ten false regressions with no confirmation step, five of
-them on same-code windows taken while this repository's own test suite was
-loading the machine. That failure is why confirmation exists
-([ADR 0002](docs/adr/0002-confirmation-batches.md)).
-
-## Checking any of this
-
-```
-uv run python -m evaluation.score v7
-uv run python -m script.validate_evidence
+    classDef cap fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+    classDef sto fill:#fef3c7,stroke:#d97706,color:#78350f
+    classDef ana fill:#dcfce7,stroke:#16a34a,color:#14532d
+    classDef his fill:#ede9fe,stroke:#7c3aed,color:#4c1d95
+    classDef out fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+    class rig,collectors,timeline cap
+    class artifact,reader sto
+    class baseline,engine,gates ana
+    class lake,bq,prom,grafana his
+    class report,perfetto out
+    style capture fill:#eff6ff,stroke:#93c5fd,color:#1e3a8a
+    style store fill:#fffbeb,stroke:#fcd34d,color:#78350f
+    style analysis fill:#f0fdf4,stroke:#86efac,color:#14532d
+    style history fill:#f5f3ff,stroke:#c4b5fd,color:#4c1d95
 ```
 
-The validator reruns every comparator on every case of every version and
-requires an exact match, recomputes the summaries byte for byte, and checks
-each claim. A version published as a failure is pinned to its exact count, so
-the failure can neither be edited away nor drift. The weaker comparators are
-required to produce false regressions on the same windows; if they stop, the
-corpus is too quiet to support the claim and the build fails.
+- **Capture.** `tracelab record` runs a benchmark with every collector
+  attached. Each collector stamps samples on its own clock; the timeline fits
+  the mapping between clocks from readings taken through the run and records
+  how far any two events on different tracks can be trusted to be apart.
+- **Artifact store.** Runs are sealed in benchgrid's run artifact contract,
+  with traces and alignment reports as extra files listed in the manifest. The
+  contract reader validates every byte before anything else sees a run.
+- **Analysis core.** Pure Python on numpy and pydantic, with a script in CI
+  that fails the build if it imports anything else, so every verdict can be
+  tested without a database or a web framework in the way.
+- **History.** The lake feeds BigQuery for cross-corpus rollups and a
+  Prometheus backfill for Grafana, each checked against the lake rather than
+  trusted.
 
 ## How a verdict is reached
 
-```
-benchgrid run artifact (run.json, samples.jsonl, manifest.json)
-   -> contract reader: reject anything that does not match the contract
-   -> analysis view of the run, warmups dropped
-   -> baseline: newest 20 SUCCEEDED, compatible runs of known-good revisions
-   -> comparability: INCOMPARABLE before any statistics if the measurement differs
-   -> per metric: noise gate, hierarchical bootstrap, decision table
-   -> rollup by metric role, then confirmation by a second batch
-   -> check report and exit code
+```mermaid
+flowchart TD
+    start(["Candidate batch of runs"]) --> comparable{"Measured the same way<br/>on the same kind of rig?"}
+    comparable -- no --> incomparable["INCOMPARABLE"]
+    comparable -- yes --> noisy{"Baseline run-to-run noise<br/>within the policy limit?"}
+    noisy -- no --> inconclusive1["INCONCLUSIVE"]
+    noisy -- yes --> boot["Hierarchical bootstrap<br/>runs first, then samples"]
+    boot --> table{"Decision table<br/>interval against threshold"}
+    table -- "inside the band" --> pass["PASS"]
+    table -- "better past threshold" --> improvement["IMPROVEMENT"]
+    table -- "worse, under threshold" --> warning["WARNING"]
+    table -- "spans zero and threshold" --> inconclusive2["INCONCLUSIVE"]
+    table -- "worse past threshold" --> confirm{"Second batch, run later,<br/>regresses on the same metric?"}
+    confirm -- no --> inconclusive3["INCONCLUSIVE"]
+    confirm -- yes --> environment{"Device state and canary<br/>held still?"}
+    environment -- no --> inconclusive4["INCONCLUSIVE"]
+    environment -- yes --> regression["REGRESSION<br/>fails the CI step"]
+
+    classDef step fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e
+    classDef bad fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+    classDef wait fill:#fef3c7,stroke:#d97706,color:#78350f
+    classDef good fill:#dcfce7,stroke:#16a34a,color:#14532d
+    classDef grey fill:#f1f5f9,stroke:#64748b,color:#0f172a
+    class start,boot,comparable,noisy,table,confirm,environment step
+    class regression bad
+    class inconclusive1,inconclusive2,inconclusive3,inconclusive4,warning wait
+    class pass,improvement good
+    class incomparable grey
 ```
 
 **Runs before samples.** Samples inside one process share a frequency state, a
 cache layout and a scheduler, so they are not independent observations of the
 code. The bootstrap resamples runs first and samples within them second.
 Pooling them instead gives an interval that ignores the run-to-run drift that
-dominates on real hardware; the pooled bootstrap row above is that mistake.
+dominates on real hardware; the pooled bootstrap comparator is that mistake.
 
-**Six verdicts, not two.** With the change signed so that positive is worse, a
-95% interval, and a practical threshold per metric:
+**Six verdicts, not two.** With the change signed so positive is worse, a 95%
+interval and a practical threshold per metric:
 
 | interval and point estimate | verdict |
 | --- | --- |
@@ -180,90 +172,199 @@ dominates on real hardware; the pooled bootstrap row above is that mistake.
 | below zero, point estimate at or past minus the threshold | IMPROVEMENT |
 | spans zero and reaches past the threshold | INCONCLUSIVE |
 
-Before any of that, a candidate measured differently from its baseline is
-INCOMPARABLE, a baseline too noisy to judge is INCONCLUSIVE, and a FAILED or
-INVALID run never takes part. None of those can become REGRESSION, and only
-REGRESSION fails a CI step.
+Only REGRESSION fails a CI step. INCONCLUSIVE and INCOMPARABLE are neutral,
+because a gate that blocks on its own uncertainty is the gate that gets
+disabled.
 
 **What makes two runs comparable** is TraceLab's own definition, because
 benchgrid's spec hash covers the revision and can never match across commits:
 the spec without its `revision` and `artifacts` keys, plus hardware class,
-architecture and whether the rig is emulated. Driver and kernel drift is
-reported, not disqualifying. See [ADR 0001](docs/adr/0001-comparison-key.md).
+architecture and whether the rig is emulated
+([ADR 0001](docs/adr/0001-comparison-key.md)).
+
+**Confirmation** asks a second batch, run about a minute later, to regress on
+the same metric before anything blocks
+([ADR 0002](docs/adr/0002-confirmation-batches.md)). **Environment checks**
+then refuse a regression measured while a canary benchmark also regressed, or
+while the device's own state, such as a GPU clock, differed from the baseline
+([ADR 0003](docs/adr/0003-environment-aware-verdicts.md)).
+
+## Evaluation and evidence
+
+```mermaid
+flowchart LR
+    policy["Policy, cases and claim<br/>committed first"] --> collect["Real corpus<br/>fresh process per run"]
+    collect --> cases["Cases<br/>same code and<br/>injected changes"]
+    cases --> comparators["Comparators<br/>on identical windows"]
+    comparators --> decisions[("decisions.jsonl<br/>every verdict and interval")]
+    decisions --> summary["summary.json<br/>summary.md"]
+    decisions --> validator{"Validator in CI"}
+    summary --> validator
+    validator --> manifest["sha256 manifest"]
+    validator --> rerun["Every decision<br/>recomputed exactly"]
+    validator --> claim["Claim and<br/>negative control"]
+
+    classDef pre fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+    classDef run fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+    classDef pub fill:#ede9fe,stroke:#7c3aed,color:#4c1d95
+    classDef chk fill:#dcfce7,stroke:#16a34a,color:#14532d
+    class policy pre
+    class collect,cases,comparators run
+    class decisions,summary pub
+    class validator,manifest,rerun,claim chk
+```
+
+Every run in a corpus is the same code, so an untouched window is a same-code
+comparison whose correct answer is known without trusting anything. Injected
+cases transform the candidate's real samples by a stated amount: uniform
+slowdowns of 2 to 20%, tail-only inflation, wider spread, displaced ticks, a
+guardrail increase, a noisy baseline. Nothing about the noise is generated;
+only the change is.
+
+**v2, a quiet laptop.** Zero false regressions across 613 cases and 72
+same-code windows, against 88 and 110 for the fixed gates, while catching 212
+of 252 injected regressions. v1, the same engine without confirmation, had
+raised ten, five of them on same code while the test suite loaded the machine.
+
+**v3, scheduled contention.** One busy loop per core started at fixed run
+indexes. On the nine windows where only the first batch was contended,
+confirmation cut false regressions from 31 to 3. The three left came from an
+unscheduled shift in the machine that outlasted the gap between batches.
+
+**v4, rates.** Memory bandwidth and loopback network throughput, where higher
+is better. Eleven false regressions, all from a two-minute disturbed stretch in
+which both unrelated benchmarks collapsed at the same indexes.
+
+**v5 and v7, real GPUs.** CUDA matmul on two L4s, the device reporting its own
+clock and temperature. Both GPUs warmed under load and their clocks fell, 4.5%
+on the first and 6.5% on the second, and throughput fell with them. v7's clock
+check refused the warm-up windows and cut false regressions from 4 to 2; the
+two left drifted inside its limit.
+
+**v6, the canary.** Memory bandwidth and network as each other's canary under
+long CPU bursts covering both batches. The canary cut false regressions there
+from 29 to 9; every survivor was a network candidate whose memory-bound canary
+did not feel the contention that halved network throughput.
+
+**The cost of caution is published too.** In v6 TraceLab caught 78 of 496
+injected regressions with its checks and 210 without; the fixed gates caught
+about 400 by raising over 250 false ones.
 
 ## Tracing: why a metric moved
 
-`tracelab record` runs a benchmark with every collector attached, each on its
-own clock, fits the mapping between clocks from sandwiched readings taken
-through the run, and writes one trace that opens in the Perfetto UI, with its
-alignment error bound. Across the 30 traced runs in `corpus/v4` that bound has
-a median of 0.36 microseconds and a maximum of 0.63.
+| collector | measures | clock |
+| --- | --- | --- |
+| workload | every iteration as a slice, every metric as a point | monotonic, in the workload |
+| process | CPU user and system time, RSS, context switches, every 10 ms | monotonic, in the recorder |
+| system | machine-wide and busiest-core CPU utilisation | wall clock, out of process |
+| eBPF | run-queue waits and preemptions of the workload thread | CLOCK_MONOTONIC in the kernel |
+| nvidia-smi | GPU utilisation, memory, power, temperature, SM clock | wall clock |
+| Nsight Systems | every CUDA kernel and memory copy | nsys session clock |
 
-In a Linux container, an eBPF collector adds the workload thread's scheduler
-run-queue waits. Twelve busy loops on ten CPUs took a 20 ms loop from 0 to 90
-late ticks out of 150 and its p99 run-queue wait from 0.8 ms to 11.9 ms, with
-the late ticks the ones that waited. Recording it found two collector bugs,
-both fixed and both written up in [docs/collectors.md](docs/collectors.md).
+- **Alignment.** Each clock-to-clock reading is a sandwich of the reference
+  clock around the other, and a line fitted through readings taken across the
+  run models drift. Across 30 traced runs the wall-to-monotonic error bound
+  has a median of 0.36 microseconds and a maximum of 0.63.
+- **eBPF.** In a Linux container, twelve busy loops on ten CPUs took a 20 ms
+  loop from 0 to 90 late ticks out of 150, and its p99 run-queue wait from
+  0.8 ms to 11.9 ms, with the late ticks the ones that waited.
+- **GPU.** On an L4, all 50 measured iterations contain exactly the 10 GEMM
+  kernels they launched, accounting for 99.6% of each iteration's CUDA-event
+  time, though the two sources share no clock. Nsight Compute puts the cuBLAS
+  GEMM at 16.3% achieved occupancy, held to two blocks per SM by 234 registers
+  per thread, while it runs near 50 TFLOP/s.
 
-On an L4 in GCP, `tracelab record --gpu --nsys` adds nvidia-smi telemetry and
-every CUDA kernel from Nsight Systems. Those share no clock with the workload,
-and still all 50 measured iterations contain exactly the 10 GEMM kernels they
-launched, which account for 99.6% of each iteration's CUDA-event time. Nsight
-Compute puts the cuBLAS GEMM at 16.3% achieved occupancy, held to two blocks
-per SM by 234 registers per thread, while running near 50 TFLOP/s.
+Details, and the collector bugs the recordings found, are in
+[docs/collectors.md](docs/collectors.md).
 
 ## History: warehouse and dashboards
 
 `tracelab warehouse` flattens every corpus into a date-partitioned Parquet
-lake, loads it into partitioned, clustered BigQuery tables, runs rollups in
-BigQuery's dialect, and recomputes every rollup from the lake, failing on any
-difference. On BigQuery, in a GCP project, 1,346 runs and 293,810 samples load
-in about 21 seconds and every rollup agrees with the lake to 1e-9. The same
-check run on the BigQuery emulator caught it returning `APPROX_QUANTILES` input
-unsorted, which BigQuery itself does not. `script/dashboards.sh` backfills
-Prometheus from the lake so every run sits at the time it ran, behind a
-provisioned Grafana dashboard. See [docs/warehouse.md](docs/warehouse.md).
+lake, loads it into BigQuery tables partitioned on run start and clustered on
+benchmark, hardware class and metric, runs rollups in BigQuery's dialect, and
+recomputes every rollup from the lake, failing on any difference. In a GCP
+project 1,346 runs and 293,810 samples load in about 21 seconds and every
+rollup agrees with the lake to 1e-9. The same check on the BigQuery emulator
+caught it returning `APPROX_QUANTILES` input unsorted, which BigQuery itself
+does not ([docs/warehouse.md](docs/warehouse.md)).
+
+`script/dashboards.sh` backfills Prometheus from the lake so every run sits at
+the moment it ran, behind a provisioned Grafana dashboard.
 
 ![The TraceLab dashboard over the published corpora](docs/img/dashboard.jpg)
 
-## Using it
+## Quickstart
+
+Requires Python 3.12, [uv](https://docs.astral.sh/uv/), and Docker for the
+dashboards and eBPF recordings.
+
+```
+uv sync --all-groups
+uv run pytest
+uv run python -m script.validate_evidence
+```
+
+Compare a candidate revision against its baseline and print the check:
 
 ```
 uv run tracelab compare <store> --policy policies/v2/matmul.toml \
     --candidate <revision> --known-good revisions.txt
+```
+
+Record a benchmark onto one aligned timeline, with eBPF in Linux or CUDA
+kernels on a GPU:
+
+```
 uv run tracelab record --out trace.json -- python -m evaluation.workload periodic
 script/ebpf_record.sh periodic trace.json
+uv run tracelab record --gpu --nsys "$(which nsys)" --out trace.json -- python3 -m evaluation.workload gpu
+```
+
+Load history and bring up the dashboards:
+
+```
 uv run tracelab warehouse export --lake lake --store v2=corpus/v2/store
 uv run tracelab warehouse bigquery --lake lake --project <gcp-project>
-uv run tracelab record --gpu --nsys "$(which nsys)" --out trace.json -- python3 -m evaluation.workload gpu
 script/dashboards.sh
 ```
 
 `revisions.txt` is the known-good set, for example the output of
 `git rev-list main`. The report names the metric that decided, its interval,
 the baseline and what was left out of it and why, and links any trace sealed
-with the candidate runs. With confirmation on, a first-batch regression asks
-for a second batch instead of failing the step.
+with the candidate runs.
 
-## Layout
+## Repository layout
 
 | path | what |
 | --- | --- |
-| `src/tracelab/core` | contract reader, statistics, decision rule, comparability, baseline selection; numpy and pydantic only, enforced by `script/check_layers.py` |
+| `src/tracelab/core` | contract reader, statistics, decision rule, comparability, baseline selection, confirmation and environment checks |
 | `src/tracelab/ingest` | reads an artifact store, highest sealed attempt only |
 | `src/tracelab/collect` | collectors, clock alignment, Perfetto export, eBPF, NVIDIA |
 | `src/tracelab/warehouse` | Parquet lake, BigQuery tables and rollups, the rollup check, OpenMetrics |
 | `src/tracelab/cli.py`, `report.py` | the commands and the check they print |
-| `evaluation/` | workloads, corpus collector, contention schedule, cases, comparators, scorer, eBPF attribution |
-| `corpus/`, `policies/`, `evidence/` | each published version, frozen; v3 reuses the v2 policies; `evidence/traces` holds the eBPF and GPU recordings, `evidence/warehouse` what BigQuery returned |
+| `evaluation/` | workloads, corpus collector, contention schedules, cases, comparators, scorer, attribution and occupancy analyses |
+| `corpus/`, `policies/`, `evidence/` | each published version, frozen, with the eBPF and GPU traces and what BigQuery returned |
 | `deploy/` | Prometheus and Grafana, and the Linux image for eBPF recordings |
+| `script/` | the evidence validator, the layering check and the prose check |
+
+## Known limits
+
+- A change in the machine that lasts across both batches, and that neither a
+  canary nor a device metric reflects, still reads as a regression.
+- The environment checks refuse real regressions measured while the machine
+  moved; that cost is large and published.
+- Every corpus comes from a laptop or two L4 VMs over a few days. Injected
+  changes are transforms of real samples, not real code changes.
+
+The full list is written for someone trying to break it, in
+[docs/known-misses.md](docs/known-misses.md).
 
 ## Documents
 
 - [PLAN.md](PLAN.md), with what changed from it and why
 - [docs/evidence.md](docs/evidence.md): how each corpus was collected, every failure traced, and how to check it
-- [docs/collectors.md](docs/collectors.md): collectors, clock alignment, and what eBPF showed
+- [docs/collectors.md](docs/collectors.md): collectors, clock alignment, eBPF and GPU results
 - [docs/warehouse.md](docs/warehouse.md): the lake, BigQuery rollups and dashboards
 - [docs/known-misses.md](docs/known-misses.md): what this does not catch
-- [docs/non-goals.md](docs/non-goals.md): what is deliberately absent, including any cloud deployment
+- [docs/non-goals.md](docs/non-goals.md): what is deliberately absent
 - [docs/adr](docs/adr): the decisions, with their reasons

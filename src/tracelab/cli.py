@@ -100,8 +100,10 @@ def compare(
     """
     bench = BenchmarkPolicy.load(policy)
     runs, problems, extras = load_runs(store)
-    mine = [r for r in runs if r.benchmark == bench.benchmark]
-    candidates = sorted((r for r in mine if r.revision == candidate), key=lambda r: r.started_at)
+    same_benchmark = [r for r in runs if r.benchmark == bench.benchmark]
+    candidates = sorted(
+        (r for r in same_benchmark if r.revision == candidate), key=lambda r: r.started_at
+    )
     if not candidates:
         typer.echo(f"no runs of {bench.benchmark} at revision {candidate} in {store}", err=True)
         raise typer.Exit(2)
@@ -113,7 +115,9 @@ def compare(
         # them the confirmation. See docs/known-misses.md.
         size = bench.min_candidate_runs
         candidates, confirmation = candidates[:size], candidates[size : 2 * size] or None
-    selection = select(candidates, (r for r in mine if r.revision != candidate), bench, revisions)
+    selection = select(
+        candidates, (r for r in same_benchmark if r.revision != candidate), bench, revisions
+    )
     result = run_compare(candidates, selection, bench, seed=seed, confirmation=confirmation)
 
     linked = {r.run_id: extras.get(r.run_id, []) for r in candidates + (confirmation or [])}
