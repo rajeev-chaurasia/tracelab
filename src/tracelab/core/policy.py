@@ -61,6 +61,32 @@ class MetricPolicy(BaseModel):
         return f"{self.metric}.{self.statistic}"
 
 
+class CanaryPolicy(BaseModel):
+    """A benchmark whose code the candidate does not touch, run alongside it.
+
+    If the canary got worse during the candidate's batches, the machine moved,
+    and a regression in the candidate cannot be told apart from that move.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    benchmark: str
+    metric: str
+    statistic: str = "median"
+    threshold: float = Field(gt=0)
+
+
+class EnvironmentCheck(BaseModel):
+    """A metric that describes the device rather than the code, such as a GPU
+    clock. A candidate measured while it differed from the baseline by more
+    than `limit`, relatively, was measured on a different device state."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    metric: str
+    limit: float = Field(gt=0)
+
+
 class JitterPolicy(BaseModel):
     """Derive deadline metrics from a periodic loop's observed intervals."""
 
@@ -89,6 +115,10 @@ class BenchmarkPolicy(BaseModel):
     # Off by default so that a policy written before confirmation existed
     # keeps the meaning it was evaluated under.
     confirm_regressions: bool = False
+    # Both off by default, so a policy written before they existed keeps the
+    # meaning it was evaluated under.
+    canary: CanaryPolicy | None = None
+    environment: list[EnvironmentCheck] = Field(default_factory=list)
     jitter: JitterPolicy | None = None
     metrics: list[MetricPolicy] = Field(min_length=1)
 

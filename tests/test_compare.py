@@ -4,8 +4,16 @@ from typing import Any
 import numpy as np
 
 from tracelab.core.baseline import Selection
-from tracelab.core.compare import compare
-from tracelab.core.policy import BenchmarkPolicy, JitterPolicy, MetricClass, MetricPolicy, Verdict
+from tracelab.core.compare import Canary, compare
+from tracelab.core.policy import (
+    BenchmarkPolicy,
+    CanaryPolicy,
+    EnvironmentCheck,
+    JitterPolicy,
+    MetricClass,
+    MetricPolicy,
+    Verdict,
+)
 from tracelab.core.run import Run, Series
 from tracelab.core.stats import Mode
 
@@ -305,3 +313,108 @@ def test_a_hand_built_baseline_with_a_failed_run_is_refused() -> None:
 
     assert result.verdict is Verdict.INCONCLUSIVE
     assert "is INVALID" in result.reason
+
+
+def canary_runs(start: int, count: int, level: float, seed: int) -> list[Run]:
+    return runs(start, count, level=level, drift=0.01, seed=seed)
+
+
+CANARY_POLICY = CONFIRMING.model_copy(
+    update={
+        "canary": CanaryPolicy(benchmark="other", metric="latency", threshold=0.03),
+    }
+)
+
+
+def with_canary(during_first: float, during_second: float = 10.0) -> Canary:
+    return Canary(
+        baseline=canary_runs(0, 20, 10.0, 11),
+        during=[canary_runs(100, 3, during_first, 12), canary_runs(200, 3, during_second, 13)],
+    )
+
+
+def test_a_regression_stands_when_the_canary_held_still() -> None:
+    result = compare(
+        candidates(11.0),
+        BASELINE,
+        CANARY_POLICY,
+        confirmation=later(11.0),
+        canary=with_canary(10.0),
+    )
+
+    assert result.verdict is Verdict.REGRESSION
+
+
+def test_a_regression_with_a_canary_that_also_got_worse_is_inconclusive() -> None:
+    result = compare(
+        candidates(11.0),
+        BASELINE,
+        CANARY_POLICY,
+        confirmation=later(11.0),
+        canary=with_canary(11.0),
+    )
+
+    assert result.verdict is Verdict.INCONCLUSIVE
+    assert result.reason.startswith("canary other also got worse during batch 1")
+
+
+def test_a_canary_that_got_better_does_not_excuse_a_regression() -> None:
+    result = compare(
+        candidates(11.0), BASELINE, CANARY_POLICY, confirmation=later(11.0), canary=with_canary(9.0)
+    )
+
+    assert result.verdict is Verdict.REGRESSION
+
+
+def test_the_canary_never_touches_a_verdict_that_was_not_a_regression() -> None:
+    result = compare(
+        candidates(10.0),
+        BASELINE,
+        CANARY_POLICY,
+        confirmation=later(10.0),
+        canary=with_canary(11.0),
+    )
+
+    assert result.verdict is Verdict.PASS
+
+
+def with_clock(rs: list[Run], mhz: float) -> list[Run]:
+    return [r.with_metrics({"gpu_sm_clock": Series("unitless", False, (mhz,) * 5)}) for r in rs]
+
+
+CLOCK_POLICY = CONFIRMING.model_copy(
+    update={"environment": [EnvironmentCheck(metric="gpu_sm_clock", limit=0.01)]}
+)
+
+
+def test_a_regression_measured_at_a_different_device_clock_is_inconclusive() -> None:
+    base = Selection(with_clock(BASELINE.runs, 1005.0))
+
+    result = compare(
+        with_clock(candidates(11.0), 960.0),
+        base,
+        CLOCK_POLICY,
+        confirmation=with_clock(later(11.0), 960.0),
+    )
+
+    assert result.verdict is Verdict.INCONCLUSIVE
+    assert result.reason.startswith("environment differed in batch 1: gpu_sm_clock median 960")
+
+
+def test_clock_drift_inside_the_limit_leaves_the_regression_standing() -> None:
+    base = Selection(with_clock(BASELINE.runs, 1005.0))
+
+    result = compare(
+        with_clock(candidates(11.0), 1000.0),
+        base,
+        CLOCK_POLICY,
+        confirmation=with_clock(later(11.0), 1001.0),
+    )
+
+    assert result.verdict is Verdict.REGRESSION
+
+
+def test_an_environment_metric_the_runs_do_not_carry_changes_nothing() -> None:
+    result = compare(candidates(11.0), BASELINE, CLOCK_POLICY, confirmation=later(11.0))
+
+    assert result.verdict is Verdict.REGRESSION

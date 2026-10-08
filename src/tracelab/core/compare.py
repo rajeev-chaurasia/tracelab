@@ -18,6 +18,7 @@ from .baseline import Selection
 from .compat import blocking, mismatches
 from .policy import (
     BenchmarkPolicy,
+    EnvironmentCheck,
     MetricClass,
     MetricPolicy,
     Verdict,
@@ -159,7 +160,104 @@ def _regressed(result: Comparison, policy: BenchmarkPolicy) -> set[str]:
     }
 
 
+@dataclass(frozen=True)
+class Canary:
+    """The canary benchmark's runs: its own baseline, and one list per candidate
+    batch of the runs taken alongside that batch."""
+
+    baseline: list[Run]
+    during: list[list[Run]]
+
+
 def compare(
+    candidates: list[Run],
+    selection: Selection,
+    policy: BenchmarkPolicy,
+    *,
+    seed: int = 0,
+    pool: bool = False,
+    confirmation: list[Run] | None = None,
+    canary: Canary | None = None,
+) -> Comparison:
+    """Compare, confirm, then check that the environment held.
+
+    Confirmation answers a moment of noise. It cannot answer a change in the
+    machine that lasts longer than the gap between batches, which is how v3,
+    v4 and v5 failed. So a regression that survives confirmation is checked
+    twice more when the policy asks: against environment metrics the runs
+    carry, such as a GPU's clock, and against a canary benchmark run alongside
+    it. Either one moving turns the regression into INCONCLUSIVE.
+    """
+    result = _confirmed(
+        candidates, selection, policy, seed=seed, pool=pool, confirmation=confirmation
+    )
+    if result.verdict is not Verdict.REGRESSION:
+        return result
+    batches = [candidates, *([confirmation] if confirmation else [])]
+    for check in policy.environment:
+        if (drift := _environment_drift(check, selection.runs, batches)) is not None:
+            return replace(result, verdict=Verdict.INCONCLUSIVE, reason=f"{drift}; {result.reason}")
+    moved = _canary_moved(policy, canary, seed) if canary is not None else None
+    if moved is not None:
+        return replace(result, verdict=Verdict.INCONCLUSIVE, reason=f"{moved}; {result.reason}")
+    return result
+
+
+def _environment_drift(
+    check: EnvironmentCheck, baseline: list[Run], batches: list[list[Run]]
+) -> str | None:
+    def median(runs: list[Run]) -> float | None:
+        values = [
+            v for r in runs if check.metric in r.metrics for v in r.metrics[check.metric].values
+        ]
+        return float(np.median(values)) if values else None
+
+    base = median(baseline)
+    if base is None or base == 0:
+        return None
+    for i, batch in enumerate(batches):
+        cand = median(batch)
+        if cand is not None and abs(cand - base) / abs(base) > check.limit:
+            return (
+                f"environment differed in batch {i + 1}: {check.metric} median {cand:.4g} "
+                f"against {base:.4g} in the baseline, past the {check.limit:.1%} limit"
+            )
+    return None
+
+
+def _canary_moved(policy: BenchmarkPolicy, canary: Canary, seed: int) -> str | None:
+    spec = policy.canary
+    if spec is None:
+        return None
+    statistic = Statistic.parse(spec.statistic)
+    base = [r.metrics[spec.metric].values for r in canary.baseline if spec.metric in r.metrics]
+    for i, during in enumerate(canary.during):
+        cand = [r.metrics[spec.metric].values for r in during if spec.metric in r.metrics]
+        if not base or not cand:
+            continue
+        estimate = stats.compare(
+            base,
+            cand,
+            statistic,
+            higher_is_better=during[0].metrics[spec.metric].higher_is_better,
+            mode=Mode.RELATIVE,
+            confidence=policy.confidence,
+            n_boot=policy.n_boot,
+            rng=np.random.default_rng([seed, 1000 + i]),
+        )
+        # Only a canary that regressed past its own threshold counts. Mild
+        # drift shows up as a WARNING, and letting that excuse the candidate
+        # would hide a real ten percent slowdown behind a one percent wobble.
+        if classify(estimate, spec.threshold) is Verdict.REGRESSION:
+            return (
+                f"canary {spec.benchmark} also got worse during batch {i + 1}: "
+                f"{spec.metric}.{spec.statistic} {estimate.change:+.1%}, interval "
+                f"[{estimate.low:+.1%}, {estimate.high:+.1%}]"
+            )
+    return None
+
+
+def _confirmed(
     candidates: list[Run],
     selection: Selection,
     policy: BenchmarkPolicy,
