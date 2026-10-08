@@ -23,6 +23,26 @@ touched. An unscheduled shift in the machine, which raised the periodic loop's
 late ticks from about 0.3% to about 13% for nine minutes, produced seven
 more, two of them on windows the claim covered. See docs/evidence.md.
 
+## A canary protects only against what it feels
+
+v6 measured this. A memory-bandwidth canary barely moved under CPU contention
+that halved its partner's network throughput, so it did not excuse the network
+candidates' false regressions. The canary has to share the candidate's
+bottleneck, and nothing here chooses one that does.
+
+## A fixed device limit leaves slow drift through
+
+v7's clock check refused the warm-up windows but not two where the clock had
+drifted 1.1 to 1.7%, inside its 2% limit, while throughput drifted with it.
+Judging throughput per clock cycle would remove the drift rather than refuse to
+judge through it; it is not built.
+
+## The environment checks cost catches
+
+In v6 TraceLab caught 78 of 496 injected regressions with its checks and 210
+without; in v7, 83 of 104 against 103. A regression measured while the
+machine moved is refused whether or not it is real.
+
 ## A sub-threshold change plus drift can clear the threshold
 
 A real 2% slowdown is below the 3% threshold and should not block. When the
@@ -77,16 +97,18 @@ deadline-miss rate is judged by its interval alone. A baseline whose miss rate
 jumps between zero and a few percent from run to run is not refused as too
 noisy; it only produces a wide interval.
 
-## One GPU, for thirty-five minutes
+## Two GPUs, briefly
 
-The NVIDIA collectors and the CUDA workload have run on one L4, on one driver,
-in one GCP VM, for about thirty-five minutes before it was deleted. A different
-GPU, driver or nsys version could format something differently; the first real
-run already found one difference from the documented format. No occupancy is
-measured: nvidia-smi reports utilisation, which is how often a kernel was
-running, not how full the SMs were. And v5 shows the device itself drifting
-while it warms, which a benchmark that does not wait for steady state will
-mistake for the code.
+The NVIDIA collectors and the CUDA workload have run on two L4 VMs, on one
+driver, for under an hour each before they were deleted. A different GPU,
+driver or nsys version could format something differently; the first real run
+already found one difference from the documented format. nvidia-smi reports
+utilisation, which is how often a kernel was running, not how full the SMs
+were; occupancy comes from a separate Nsight Compute profile of a few launches.
+And v5 and v7 both show the device drifting while it warms, which a benchmark
+that does not wait for steady state will mistake for the code. The two L4s did
+not even agree on their own clock: one ran near 1 GHz, the other near 0.9 GHz
+under load, from the same image.
 
 ## eBPF follows one thread, in a VM
 

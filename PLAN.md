@@ -51,6 +51,11 @@ rather than left as first written. The substantive changes:
   by three over-calls while the GPU warmed, and its negative control failed
   too, because the GPU was quiet enough that a naive gate did as well. Pinned
   at three; the VM was deleted after.
+- **v6 and v7 tested checks on the environment, and both narrowed the failure
+  without closing it.** A canary cut long-burst false regressions from 29 to 9
+  and a GPU clock check cut warm-up ones from 4 to 2, each pre-registered, each
+  pinned, each at a visible cost in catches. ADR 0003 has the design and what
+  would do better.
 
 ## 1. The claim this repo has to earn
 

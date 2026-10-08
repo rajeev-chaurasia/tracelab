@@ -7,11 +7,11 @@ check it, and what it cannot show.
 
 Each version has three parts, all committed:
 
-| part | v1 | v2 | v3 | v4 | v5 |
-| --- | --- | --- | --- | --- | --- |
-| corpus of sealed run artifacts | `corpus/v1/store`, 200 runs | `corpus/v2/store`, 300 runs | `corpus/v3/store`, 546 runs, and `corpus/v3/contention.jsonl` | `corpus/v4/store`, 300 runs, 30 with sealed traces | `corpus/v5/store`, 120 runs on an L4, 12 with sealed traces |
-| policies, committed before the corpus | `policies/v1` | `policies/v2` | `policies/v2`, unchanged | `policies/v4` | `policies/v5` |
-| every decision, and summaries derived from them | `evidence/v1` | `evidence/v2` | `evidence/v3` | `evidence/v4` | `evidence/v5` |
+| part | v1 | v2 | v3 | v4 | v5 | v6 | v7 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| corpus of sealed run artifacts | `corpus/v1/store`, 200 runs | `corpus/v2/store`, 300 runs | `corpus/v3/store`, 546 runs, and `corpus/v3/contention.jsonl` | `corpus/v4/store`, 300 runs, 30 with sealed traces | `corpus/v5/store`, 120 runs on an L4, 12 with sealed traces | `corpus/v6/store`, 456 runs, and `corpus/v6/contention.jsonl` | `corpus/v7/store`, 120 runs on a second L4 |
+| policies, committed before the corpus | `policies/v1` | `policies/v2` | `policies/v2`, unchanged | `policies/v4` | `policies/v5` | `policies/v6` | `policies/v7` |
+| every decision, and summaries derived from them | `evidence/v1` | `evidence/v2` | `evidence/v3` | `evidence/v4` | `evidence/v5` | `evidence/v6` | `evidence/v7` |
 
 A decision row names the case, the comparator, the verdict, every metric's
 interval, and the run ids on each side, so any single verdict can be traced to
@@ -23,7 +23,7 @@ the samples that produced it. `summary.json` and `summary.md` are computed from
 `evaluation/collect.py` runs each benchmark as a fresh process, wraps its
 samples in benchgrid's run artifact contract, and reads the result straight
 back through the contract reader before sealing it. A run the reader would
-reject stops collection. All 1,466 runs are accepted by
+reject stops collection. All 2,042 runs are accepted by
 `python -m tracelab.ingest`.
 
 The benchmarks of a corpus are interleaved, so slow drift in the machine lands
@@ -132,6 +132,36 @@ either, so v5 cannot tell the methods apart. What it shows is narrower: on a
 quiet device TraceLab does not invent regressions, and it does not escape a
 device that has not reached steady state.
 
+## v6 and v7, the environment checks
+
+Both tested ADR 0003's checks against corpora collected after the checks and
+their claims were committed.
+
+**v6** interleaved the memory-bandwidth and network benchmarks, each the
+other's canary, under five long CPU bursts that each covered one window's
+first batch, gap and confirmation batch with its baseline clean. On those
+windows TraceLab raised 9 false regressions against 29 for the same engine
+without its checks; the claim was zero. Everywhere else it raised none, against
+6. All nine survivors were network candidates in windows 90 and 135. The bursts
+cut network throughput by 47 to 59% in every targeted window, but memory
+bandwidth moved only 1 to 2.5% in those two, under its 3% threshold, so the
+canary never fired. A memory-bound canary does not feel CPU contention the way
+a scheduler-bound benchmark does.
+
+The cost is in catches: 78 of 496 injected regressions against 210 without the
+checks. Network throughput also moved 56% from run to run across a corpus more
+than half of which ran under a burst, so most network cases were refused by
+the noise gate before either check was reached.
+
+**v7** ran the CUDA workload on a second, freshly created L4, which now
+reports its own SM clock and temperature every iteration. It warmed from 67 to
+80 degrees, its clock fell from 930 to 870 MHz and throughput from 51.3 to 48.1
+TFLOP/s. TraceLab raised 2 false regressions against 4 without the clock check,
+and the check returned INCONCLUSIVE on the warm-up windows it was meant for. The
+two survivors were real 2% slowdowns in windows where the clock had drifted
+only 1.1 and 1.7%, inside the 2% limit, while throughput drifted with it. The
+negative control held. The cost: 83 of 104 caught against 103.
+
 ## Reproducing and checking
 
 ```
@@ -147,8 +177,9 @@ For v2 the claim check requires zero TraceLab false regressions and at least
 one same-code false regression from a weaker comparator. For v1, v3, v4 and
 v5, which are published as failures, it requires exactly the published count:
 ten overall for v1, three on the targeted windows for v3, where the one-batch
-engine must also still raise at least one, eleven overall for v4, and three
-overall for v5.
+engine must also still raise at least one, eleven overall for v4, three
+overall for v5, nine on the targeted windows for v6, where the engine without
+its checks must still raise at least one, and two overall for v7.
 
 ## Changes to the harness after a result
 

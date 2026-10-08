@@ -14,16 +14,18 @@ the evidence is about.
 > than the run-to-run noise the baseline itself shows. On a quiet machine that
 > held false regressions at zero. Under real contention it removed most of
 > them, not all: what is left, in every evaluation that failed, comes from
-> changes in the machine that outlast the gap between the two batches.
+> changes in the machine that outlast the gap between the two batches. A
+> canary and a device check, tested last, narrow that further and cost real
+> catches to do it.
 
 A performance gate that fires on noise gets muted within a month, and a muted
 gate is worse than none because people still believe it is watching. So the
 evidence here is mostly about the other side of the promise: what happens when
 the code did not change and the machine was simply noisy.
 
-There are five published evaluations over 1,466 real benchmark runs, the last
-on an NVIDIA L4. Four of them are failures, and all are kept exactly as they
-came out.
+There are seven published evaluations over 2,042 real benchmark runs, three of
+them on NVIDIA L4s. Six of them are failures, and all are kept exactly as they
+came out, each traced to its cause.
 
 | version | what it tested | TraceLab false regressions | fixed 5% gates | outcome |
 | --- | --- | ---: | ---: | --- |
@@ -32,6 +34,8 @@ came out.
 | v3 | scheduled CPU bursts against confirmation | 3 on targeted windows, 20 overall | over 300 | failed, pinned at 3 |
 | v4 | rate metrics, higher is better, traces sealed | 11 | 141 and 208 | failed, pinned at 11 |
 | v5 | CUDA matmul on an L4, GPU telemetry sealed | 3, none on same code | 0 and 6 | failed, pinned at 3 |
+| v6 | a canary against long CPU bursts | 9 on targeted windows, against 29 without it | over 250 | failed, pinned at 9 |
+| v7 | a GPU clock check against a warming L4 | 2, against 4 without it | 0 and 6 | failed, pinned at 2 |
 
 ## v3: real contention on a schedule fixed in advance
 
@@ -82,6 +86,19 @@ so TraceLab returned INCONCLUSIVE on most of its cases and caught 91 of 288
 injected regressions, where the fixed gates caught about 245 at the price of
 141 and 208 false ones.
 
+## v6 and v7: checking the environment
+
+Each failure above left its evidence in the data: two unrelated benchmarks
+collapsing together, a GPU clock still falling. ADR 0003 turns that into two
+checks on any would-be regression: a canary benchmark run alongside it, and
+device metrics the runs carry. Both were tested on fresh corpora collected
+after they were committed. The canary cut false regressions on long-burst
+windows from 29 to 9; every survivor was a network candidate whose
+memory-bandwidth canary did not feel the CPU contention. The clock check cut
+them on a warming L4 from 4 to 2; the survivors drifted inside its limit. Both
+cost catches, 78 of 496 against 210 in v6, because a regression measured while
+the machine moved is refused whether it is real or not.
+
 ## v5: a real GPU
 
 From `evidence/v5`: 120 runs of fp16 matrix multiplies on an NVIDIA L4 in a GCP
@@ -122,7 +139,7 @@ loading the machine. That failure is why confirmation exists
 ## Checking any of this
 
 ```
-uv run python -m evaluation.score v5
+uv run python -m evaluation.score v7
 uv run python -m script.validate_evidence
 ```
 
@@ -191,7 +208,9 @@ both fixed and both written up in [docs/collectors.md](docs/collectors.md).
 On an L4 in GCP, `tracelab record --gpu --nsys` adds nvidia-smi telemetry and
 every CUDA kernel from Nsight Systems. Those share no clock with the workload,
 and still all 50 measured iterations contain exactly the 10 GEMM kernels they
-launched, which account for 99.6% of each iteration's CUDA-event time.
+launched, which account for 99.6% of each iteration's CUDA-event time. Nsight
+Compute puts the cuBLAS GEMM at 16.3% achieved occupancy, held to two blocks
+per SM by 234 registers per thread, while running near 50 TFLOP/s.
 
 ## History: warehouse and dashboards
 

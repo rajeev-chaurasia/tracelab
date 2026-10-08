@@ -69,6 +69,22 @@ In v5 the same telemetry explained a verdict: the only false regressions came
 while the L4 was heating from 37 to 52 degrees and its SM clock was falling
 from 1,005 to 960 MHz.
 
+## GPU occupancy
+
+Nsight Compute's Occupancy and Launch Statistics sections, run on the L4 and
+summarised by `evaluation/occupancy.py` into `evidence/traces/gpu-occupancy.json`:
+
+| kernel | registers per thread | theoretical | achieved | limited by |
+| --- | ---: | ---: | ---: | --- |
+| cuBLAS `ampere_fp16_s1688gemm_fp16_128x128` | 234 | 16.67% | 16.26% | registers, two blocks per SM |
+| PyTorch normal-distribution RNG | 40 | 100% | 67.95% | nothing, full theoretical occupancy |
+
+The GEMM's low occupancy is a choice, not a defect: a large tiled matrix
+multiply spends registers on register-level blocking rather than on more warps,
+and still ran at about 50 TFLOP/s. Occupancy is measured here by profiling a
+few launches, which replays each kernel; it is not collected on every run,
+because the replay changes the timing it would be explaining.
+
 ## eBPF: what the scheduler explains
 
 The eBPF collector loads a bpftrace program on `sched_wakeup` and
