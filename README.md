@@ -46,54 +46,39 @@ nor drift.
 Other comparators score every case alongside TraceLab: the same engine with
 each defence removed, a bootstrap that pools samples as if independent, and
 fixed 5% gates against a twenty-run window and against the previous run.
-Their false regressions are the reason TraceLab's mean anything, and the
+Their false regressions are what give TraceLab's numbers meaning, and the
 validator fails the build if the weaker comparators stop producing them.
 
 ## Architecture
 
 ```mermaid
-flowchart LR
+flowchart TB
     subgraph capture["Capture"]
-        direction TB
-        rig["Benchmark rig<br/>laptop, Linux VM or L4 GPU"]
-        collectors["Collectors<br/>workload, process, system,<br/>eBPF, nvidia-smi, Nsight"]
-        timeline["Aligned timeline<br/>fitted clock mappings,<br/>measured error bound"]
-        rig --> collectors --> timeline
+        direction LR
+        rig["Benchmark rig<br/>laptop, Linux VM or L4 GPU"] --> collectors["Collectors<br/>workload, process, system,<br/>eBPF, nvidia-smi, Nsight"] --> timeline["Aligned timeline<br/>fitted clock mappings,<br/>measured error bound"]
     end
 
     subgraph store["Artifact store"]
-        direction TB
-        artifact[("Sealed run artifacts<br/>run.json, samples.jsonl,<br/>trace.json, manifest.json")]
-        reader["Contract reader<br/>rejects anything off contract"]
-        artifact --> reader
+        direction LR
+        artifact[("Sealed run artifacts<br/>run.json, samples.jsonl,<br/>trace.json, manifest.json")] --> reader["Contract reader<br/>rejects anything off contract"]
     end
 
     subgraph analysis["Analysis core"]
-        direction TB
-        baseline["Baseline selection<br/>and comparability"]
-        engine["Hierarchical bootstrap<br/>and decision table"]
-        gates["Confirmation, canary<br/>and device checks"]
-        baseline --> engine --> gates
+        direction LR
+        baseline["Baseline selection<br/>and comparability"] --> engine["Hierarchical bootstrap<br/>and decision table"] --> gates["Confirmation, canary<br/>and device checks"] --> report["Check report<br/>and CI exit code"]
     end
 
     subgraph history["History"]
-        direction TB
-        lake[("Parquet lake<br/>partitioned by date")]
-        bq[("BigQuery<br/>partitioned, clustered")]
-        prom["Prometheus backfill"]
-        grafana["Grafana dashboards"]
-        lake --> bq
-        lake --> prom --> grafana
+        direction LR
+        lake[("Parquet lake<br/>partitioned by date")] --> bq[("BigQuery<br/>partitioned, clustered")]
+        lake --> prom["Prometheus backfill"] --> grafana["Grafana dashboards"]
     end
 
-    report["Check report<br/>and CI exit code"]
     perfetto["Perfetto UI"]
-
     timeline --> artifact
-    reader --> baseline
-    gates --> report
-    reader --> lake
     timeline --> perfetto
+    reader --> baseline
+    reader --> lake
 
     classDef cap fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
     classDef sto fill:#fef3c7,stroke:#d97706,color:#78350f
@@ -194,17 +179,30 @@ while the device's own state, such as a GPU clock, differed from the baseline
 ## Evaluation and evidence
 
 ```mermaid
-flowchart LR
-    policy["Policy, cases and claim<br/>committed first"] --> collect["Real corpus<br/>fresh process per run"]
-    collect --> cases["Cases<br/>same code and<br/>injected changes"]
-    cases --> comparators["Comparators<br/>on identical windows"]
-    comparators --> decisions[("decisions.jsonl<br/>every verdict and interval")]
-    decisions --> summary["summary.json<br/>summary.md"]
-    decisions --> validator{"Validator in CI"}
-    summary --> validator
-    validator --> manifest["sha256 manifest"]
-    validator --> rerun["Every decision<br/>recomputed exactly"]
-    validator --> claim["Claim and<br/>negative control"]
+flowchart TB
+    subgraph before["Committed before any data"]
+        direction LR
+        policy["Policy, cases<br/>and claim"]
+    end
+
+    subgraph produce["Produced"]
+        direction LR
+        collect["Real corpus<br/>fresh process per run"] --> cases["Cases<br/>same code and<br/>injected changes"] --> comparators["Comparators<br/>on identical windows"] --> decisions[("decisions.jsonl<br/>every verdict and interval")] --> summary["summary.json<br/>summary.md"]
+    end
+
+    subgraph check["Checked in CI on every push"]
+        direction LR
+        manifest["sha256<br/>manifest"]
+        rerun["Every decision<br/>recomputed exactly"]
+        recount["Summaries<br/>recomputed"]
+        claim["Claim and<br/>negative control"]
+    end
+
+    policy --> collect
+    summary --> manifest
+    summary --> rerun
+    summary --> recount
+    summary --> claim
 
     classDef pre fill:#ffedd5,stroke:#ea580c,color:#7c2d12
     classDef run fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
@@ -213,7 +211,10 @@ flowchart LR
     class policy pre
     class collect,cases,comparators run
     class decisions,summary pub
-    class validator,manifest,rerun,claim chk
+    class manifest,rerun,recount,claim chk
+    style before fill:#fff7ed,stroke:#fdba74,color:#7c2d12
+    style produce fill:#eff6ff,stroke:#93c5fd,color:#1e3a8a
+    style check fill:#f0fdf4,stroke:#86efac,color:#14532d
 ```
 
 Every run in a corpus is the same code, so an untouched window is a same-code
