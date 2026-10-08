@@ -107,3 +107,19 @@ def test_gpu_alignment_counts_kernels_inside_each_iteration() -> None:
     assert result["kernels_inside_each_iteration"] == {2: 3}
     assert result["kernel_time_over_event_time"]["median"] == 0.8
     assert result["slack_us"] == {"before_first_kernel": 10.0, "after_last_kernel": 10.0}
+
+
+def test_occupancy_from_a_real_l4_nsight_compute_report() -> None:
+    from tracelab.collect.nvidia import parse_ncu
+
+    text = (Path(__file__).parent / "fixtures" / "ncu" / "occupancy-l4.csv").read_text()
+
+    rng, gemm = parse_ncu(text)
+
+    assert gemm.kernel.startswith("ampere_fp16_s1688gemm")
+    assert gemm.registers_per_thread == 234
+    assert (gemm.theoretical_pct, gemm.achieved_pct) == (16.67, 16.26)
+    assert gemm.limited_by == "registers"
+    assert rng.theoretical_pct == 100
+    assert rng.achieved_pct == 67.95
+    assert rng.limited_by == "nothing, full theoretical occupancy"

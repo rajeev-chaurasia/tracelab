@@ -1,0 +1,62 @@
+[
+  {
+    "launch": 0,
+    "kernel": "void at::<unnamed>::distribution_elementwise_grid_stride_kernel<float, 4, void at::normal_and_transform<c10::Half, float, at::CUDAGeneratorImpl *, void at::normal_kernel<at::CUDAGeneratorImpl *>(const at::TensorBase &, double, double, T1)::[lambda() (instance 1)]::operator ()() const::[lambda() (instance 3)]::operator ()() const::[lambda(float) (instance 1)]>(at::TensorIteratorBase &, T3, T4)::[lambda(curandStatePhilox4_32_10 *) (instance 2)], void at::<unnamed>::distribution_nullary_kernel<c10::Half, float, float4, at::CUDAGeneratorImpl *, void at::normal_and_transform<c10::Half, float, at::CUDAGeneratorImpl *, void at::normal_kernel<at::CUDAGeneratorImpl *>(const at::TensorBase &, double, double, T1)::[lambda() (instance 1)]::operator ()() const::[lambda() (instance 3)]::operator ()() const::[lambda(float) (instance 1)]>(at::TensorIteratorBase &, T3, T4)::[lambda(curandStatePhilox4_32_10 *) (instance 2)], void at::normal_kernel<at::CUDAGeneratorImpl *>(const at::TensorBase &, double, double, T1)::[lambda() (instance 1)]::operator ()() const::[lambda() (instance 3)]::operator ()() const::[lambda(float) (instance 1)]>(at::TensorIteratorBase &, T4, const T5 &, T6)::[lambda(int, float) (instance 1)]>(long, at::PhiloxCudaState, T3, T4)",
+    "block_size": "(256, 1, 1)",
+    "grid_size": "(348, 1, 1)",
+    "registers_per_thread": 40.0,
+    "theoretical_pct": 100.0,
+    "achieved_pct": 67.95,
+    "limited_by": "nothing, full theoretical occupancy"
+  },
+  {
+    "launch": 1,
+    "kernel": "void at::<unnamed>::distribution_elementwise_grid_stride_kernel<float, 4, void at::normal_and_transform<c10::Half, float, at::CUDAGeneratorImpl *, void at::normal_kernel<at::CUDAGeneratorImpl *>(const at::TensorBase &, double, double, T1)::[lambda() (instance 1)]::operator ()() const::[lambda() (instance 3)]::operator ()() const::[lambda(float) (instance 1)]>(at::TensorIteratorBase &, T3, T4)::[lambda(curandStatePhilox4_32_10 *) (instance 2)], void at::<unnamed>::distribution_nullary_kernel<c10::Half, float, float4, at::CUDAGeneratorImpl *, void at::normal_and_transform<c10::Half, float, at::CUDAGeneratorImpl *, void at::normal_kernel<at::CUDAGeneratorImpl *>(const at::TensorBase &, double, double, T1)::[lambda() (instance 1)]::operator ()() const::[lambda() (instance 3)]::operator ()() const::[lambda(float) (instance 1)]>(at::TensorIteratorBase &, T3, T4)::[lambda(curandStatePhilox4_32_10 *) (instance 2)], void at::normal_kernel<at::CUDAGeneratorImpl *>(const at::TensorBase &, double, double, T1)::[lambda() (instance 1)]::operator ()() const::[lambda() (instance 3)]::operator ()() const::[lambda(float) (instance 1)]>(at::TensorIteratorBase &, T4, const T5 &, T6)::[lambda(int, float) (instance 1)]>(long, at::PhiloxCudaState, T3, T4)",
+    "block_size": "(256, 1, 1)",
+    "grid_size": "(348, 1, 1)",
+    "registers_per_thread": 40.0,
+    "theoretical_pct": 100.0,
+    "achieved_pct": 67.92,
+    "limited_by": "nothing, full theoretical occupancy"
+  },
+  {
+    "launch": 2,
+    "kernel": "ampere_fp16_s1688gemm_fp16_128x128_ldg8_f2f_stages_32x1_nn",
+    "block_size": "(128, 1, 1)",
+    "grid_size": "(32, 32, 1)",
+    "registers_per_thread": 234.0,
+    "theoretical_pct": 16.67,
+    "achieved_pct": 16.26,
+    "limited_by": "registers"
+  },
+  {
+    "launch": 3,
+    "kernel": "ampere_fp16_s1688gemm_fp16_128x128_ldg8_f2f_stages_32x1_nn",
+    "block_size": "(128, 1, 1)",
+    "grid_size": "(32, 32, 1)",
+    "registers_per_thread": 234.0,
+    "theoretical_pct": 16.67,
+    "achieved_pct": 16.26,
+    "limited_by": "registers"
+  },
+  {
+    "launch": 4,
+    "kernel": "ampere_fp16_s1688gemm_fp16_128x128_ldg8_f2f_stages_32x1_nn",
+    "block_size": "(128, 1, 1)",
+    "grid_size": "(32, 32, 1)",
+    "registers_per_thread": 234.0,
+    "theoretical_pct": 16.67,
+    "achieved_pct": 16.26,
+    "limited_by": "registers"
+  },
+  {
+    "launch": 5,
+    "kernel": "ampere_fp16_s1688gemm_fp16_128x128_ldg8_f2f_stages_32x1_nn",
+    "block_size": "(128, 1, 1)",
+    "grid_size": "(32, 32, 1)",
+    "registers_per_thread": 234.0,
+    "theoretical_pct": 16.67,
+    "achieved_pct": 16.26,
+    "limited_by": "registers"
+  }
+]

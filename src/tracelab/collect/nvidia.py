@@ -17,8 +17,11 @@ clock, where the timeline's fitted mapping takes over.
 
 from __future__ import annotations
 
+import csv
+import io
 import sqlite3
 import subprocess
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
@@ -140,3 +143,65 @@ def import_nsys(sqlite_path: Path) -> list[Sample]:
         return out
     finally:
         db.close()
+
+
+@dataclass(frozen=True)
+class Occupancy:
+    """One profiled kernel launch's occupancy, as Nsight Compute measured it."""
+
+    launch: int
+    kernel: str
+    block_size: str
+    grid_size: str
+    registers_per_thread: float
+    theoretical_pct: float
+    achieved_pct: float
+    # The resource that caps resident blocks per SM: registers, shared
+    # memory, warps or the SM's own block limit, whichever is smallest.
+    limited_by: str
+
+
+LIMITS = {
+    "Block Limit Registers": "registers",
+    "Block Limit Shared Mem": "shared memory",
+    "Block Limit Warps": "warps",
+    "Block Limit SM": "blocks per SM",
+}
+
+
+def parse_ncu(text: str) -> list[Occupancy]:
+    """The CSV of `ncu --import <report> --csv --page details` with the Occupancy
+    and LaunchStats sections, one row per metric per launch."""
+    by_launch: dict[int, dict[str, str]] = {}
+    for row in csv.DictReader(io.StringIO(text)):
+        if not row.get("ID", "").isdigit():
+            continue
+        launch = by_launch.setdefault(
+            int(row["ID"]),
+            {"kernel": row["Kernel Name"], "block": row["Block Size"], "grid": row["Grid Size"]},
+        )
+        launch[row["Metric Name"]] = row["Metric Value"]
+    out = []
+    for launch_id, m in sorted(by_launch.items()):
+        limits = {name: float(m[key].replace(",", "")) for key, name in LIMITS.items() if key in m}
+        out.append(
+            Occupancy(
+                launch=launch_id,
+                kernel=m["kernel"],
+                block_size=m["block"],
+                grid_size=m["grid"],
+                registers_per_thread=float(m["Registers Per Thread"]),
+                theoretical_pct=float(m["Theoretical Occupancy"]),
+                achieved_pct=float(m["Achieved Occupancy"]),
+                # At full theoretical occupancy no resource is holding blocks
+                # back, whichever limit happens to be the smallest.
+                limited_by=(
+                    "nothing, full theoretical occupancy"
+                    if float(m["Theoretical Occupancy"]) >= 100
+                    else min(limits, key=lambda k: limits[k])
+                    if limits
+                    else ""
+                ),
+            )
+        )
+    return out
