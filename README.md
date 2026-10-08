@@ -1,5 +1,7 @@
 # tracelab
 
+[![CI](https://github.com/rajeev-chaurasia/tracelab/actions/workflows/ci.yml/badge.svg)](https://github.com/rajeev-chaurasia/tracelab/actions/workflows/ci.yml)
+
 Performance tracing and regression analysis for benchgrid's run artifacts.
 TraceLab records a benchmark with several collectors on one aligned timeline,
 eBPF scheduler tracing and CUDA kernels included, decides whether a candidate

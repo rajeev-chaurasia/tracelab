@@ -14,8 +14,8 @@ jobs:
     env:
       TRACELAB_BQ_ENDPOINT: http://localhost:9050
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.2.0
         with:
           python-version: "3.12"
       - uses: ruby/setup-ruby@v1
