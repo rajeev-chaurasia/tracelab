@@ -66,15 +66,21 @@ def check_summary(version: Version, published: list[dict[str, Any]]) -> list[str
     return errors
 
 
-def check_contention_claim(published: list[dict[str, Any]], pinned: int | None = None) -> list[str]:
-    """v3's pre-registered claim, on the windows its schedule targeted.
+def check_contention_claim(
+    published: list[dict[str, Any]],
+    pinned: int | None = None,
+    target: str = "short_burst_first_batch",
+    control: str = "tracelab_one_batch",
+) -> list[str]:
+    """A contention corpus's pre-registered claim, on the windows it targeted.
 
-    TraceLab must raise no false regression where only the first batch ran
-    under a burst, and the one-batch engine must raise at least one there, or
-    the bursts were too weak to have tested confirmation at all.
+    TraceLab must raise no false regression on the targeted windows, and the
+    control comparator, the engine without the defence under test, must raise
+    at least one there, or the contention was too weak to test anything. v3
+    targets first batches alone against the one-batch engine; v6 targets both
+    batches against the engine without its environment checks.
     """
     summary = score.summarize(published)["comparators"]
-    target = "short_burst_first_batch"
     errors = []
     false = summary["tracelab"]["by_exposure"][target]["false_regressions"]
     if pinned is not None:
@@ -84,19 +90,28 @@ def check_contention_claim(published: list[dict[str, Any]], pinned: int | None =
             )
     elif false != 0:
         errors.append(f"claim fails: tracelab raised {false} false regressions on {target}")
-    one_batch = summary.get("tracelab_one_batch", {}).get("by_exposure", {})
-    control = one_batch.get(target, {}).get("false_regressions", 0)
-    if control == 0:
+    fooled = summary.get(control, {}).get("by_exposure", {})
+    if fooled.get(target, {}).get("false_regressions", 0) == 0:
         errors.append(
-            "negative control fails: the one-batch engine raised no false regression on "
-            f"{target}, so the bursts did not test confirmation"
+            f"negative control fails: {control} raised no false regression on "
+            f"{target}, so the contention did not test the defence"
         )
     return errors
 
 
-def check_claim(published: list[dict[str, Any]], pinned: int | None = None) -> list[str]:
+def check_claim(
+    published: list[dict[str, Any]],
+    pinned: int | None = None,
+    target: str | None = None,
+    control: str | None = None,
+) -> list[str]:
     if any("exposure" in d for d in published):
-        return check_contention_claim(published, pinned)
+        return check_contention_claim(
+            published,
+            pinned,
+            target or "short_burst_first_batch",
+            control or "tracelab_one_batch",
+        )
     summary = score.summarize(published)["comparators"]
     false = summary["tracelab"]["false_regressions"]
     if pinned is not None:
@@ -106,6 +121,14 @@ def check_claim(published: list[dict[str, Any]], pinned: int | None = None) -> l
     errors = []
     if false != 0:
         errors.append(f"claim fails: tracelab raised {false} false regressions")
+    if control is not None:
+        # The defence under test has to have had something to defend against.
+        if summary.get(control, {}).get("false_regressions", 0) == 0:
+            errors.append(
+                f"negative control fails: {control} raised no false regression, so "
+                "nothing in the corpus tested the defence"
+            )
+        return errors
     weaker = {k: v for k, v in summary.items() if not k.startswith("tracelab")}
     if not any(v["same_code_false_regressions"] > 0 for v in weaker.values()):
         errors.append(
@@ -123,7 +146,12 @@ def validate(version: Version) -> bool:
         ("manifest", lambda: check_manifest(version)),
         ("decisions", lambda: check_decisions(version, published)),
         ("summary", lambda: check_summary(version, published)),
-        ("claim", lambda: check_claim(published, version.pinned_false_regressions)),
+        (
+            "claim",
+            lambda: check_claim(
+                published, version.pinned_false_regressions, version.claim_target, version.control
+            ),
+        ),
     ]
     failed = False
     for name, check in checks:

@@ -217,3 +217,52 @@ def test_throughput_kinds_exist_for_each_rate_benchmark_and_skip_absent_ones() -
     assert ("membw", "slower_5%") in names
     assert ("network", "faster_10%") in names
     assert {case.kind.benchmark for case in c.cases(corpus)} == {"matmul"}
+
+
+def test_canary_runs_sit_at_the_same_positions_and_are_never_transformed() -> None:
+    corpus = {
+        "membw": [
+            run(i, metrics={c.LAT: [10.0], "memory_bandwidth": [5.0], "cpu_time": [1.0]})
+            for i in range(60)
+        ],
+        "network": [
+            run(1000 + i, metrics={c.LAT: [7.0], "network_throughput": [3.0], "cpu_time": [1.0]})
+            for i in range(60)
+        ],
+    }
+
+    built = [
+        x
+        for x in c.cases(corpus, confirmation_gap=18, canaries={"membw": "network"})
+        if x.kind.benchmark == "membw" and x.kind.name == "slower_10%"
+    ]
+
+    case = built[1]
+    assert case.canary is not None
+    assert [r.run_id for r in case.canary.baseline] == [
+        corpus["network"][i].run_id for i in range(case.start, case.start + 20)
+    ]
+    first_at = case.start + 20
+    assert [r.run_id for r in case.canary.during[0]] == [
+        corpus["network"][i].run_id for i in range(first_at, first_at + 3)
+    ]
+    assert all(r.metrics["network_throughput"].values == (3.0,) for r in case.canary.during[1])
+    unpaired = next(
+        x for x in c.cases(corpus, 18, {"membw": "network"}) if x.kind.benchmark == "network"
+    )
+    assert unpaired.canary is None
+
+
+def test_a_control_comparator_must_have_been_fooled() -> None:
+    held = [
+        decision("tracelab", "same_code", "PASS", ["PASS"]),
+        decision("tracelab_no_environment", "slower_2%", "REGRESSION", ["PASS", "WARNING"]),
+    ]
+    quiet = [
+        decision("tracelab", "same_code", "PASS", ["PASS"]),
+        decision("tracelab_no_environment", "same_code", "PASS", ["PASS"]),
+    ]
+
+    assert check_claim(held, control="tracelab_no_environment") == []
+    [error] = check_claim(quiet, control="tracelab_no_environment")
+    assert error.startswith("negative control fails: tracelab_no_environment")

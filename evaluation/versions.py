@@ -12,8 +12,8 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
-from evaluation.comparators import BASELINES, ONE_BATCH, TRACELAB, Comparator
-from evaluation.contention import exposure
+from evaluation.comparators import BASELINES, NO_ENVIRONMENT, ONE_BATCH, TRACELAB, Comparator
+from evaluation.contention import LONG_SCHEDULE, exposure
 
 
 @dataclass(frozen=True)
@@ -32,6 +32,12 @@ class Version:
     # labelled with how its window was exposed, and the claim is checked on
     # the windows the schedule targeted rather than on all of them.
     exposure: Callable[[int], str] | None = None
+    # Which other benchmark serves as each benchmark's canary.
+    canaries: dict[str, str] | None = None
+    # The claim's scope: the exposure label it is checked on, if any, and the
+    # comparator that has to be fooled there for the check to mean anything.
+    claim_target: str | None = None
+    control: str | None = None
 
     @property
     def manifest(self) -> Path:
@@ -77,6 +83,8 @@ VERSIONS = {
             # claim was zero. docs/evidence.md traces each one.
             pinned_false_regressions=3,
             exposure=lambda start: exposure(start).value,
+            claim_target="short_burst_first_batch",
+            control="tracelab_one_batch",
         ),
         Version(
             name="v4",
@@ -103,6 +111,29 @@ VERSIONS = {
             # pin does not hide: docs/evidence.md says the corpus cannot tell
             # the methods apart.
             pinned_false_regressions=3,
+        ),
+        Version(
+            name="v6",
+            corpus=Path("corpus/v6/store"),
+            policies=Path("policies/v6"),
+            out=Path("evidence/v6"),
+            confirmation_gap=18,
+            comparators=[TRACELAB, NO_ENVIRONMENT, ONE_BATCH, *BASELINES],
+            pinned_false_regressions=None,
+            exposure=lambda start: exposure(start, schedule=LONG_SCHEDULE).value,
+            canaries={"membw": "network", "network": "membw"},
+            claim_target="long_burst_both_batches",
+            control="tracelab_no_environment",
+        ),
+        Version(
+            name="v7",
+            corpus=Path("corpus/v7/store"),
+            policies=Path("policies/v7"),
+            out=Path("evidence/v7"),
+            confirmation_gap=18,
+            comparators=[TRACELAB, NO_ENVIRONMENT, ONE_BATCH, *BASELINES],
+            pinned_false_regressions=None,
+            control="tracelab_no_environment",
         ),
     ]
 }

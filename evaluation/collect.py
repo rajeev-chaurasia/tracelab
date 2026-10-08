@@ -10,7 +10,7 @@ benchmark rig and nothing here claims otherwise: there is no governor control,
 no thermal gate and no isolation, which is exactly why its noise is useful.
 
     uv run python -m evaluation.collect --runs 150 --store corpus/v2/store
-    uv run python -m evaluation.collect --runs 273 --store corpus/v3/store --contention
+    uv run python -m evaluation.collect --runs 273 --store corpus/v3/store --contention short
 """
 
 from __future__ import annotations
@@ -27,7 +27,7 @@ from pathlib import Path
 from typing import Any
 
 from evaluation import workload
-from evaluation.contention import Hogs, under_contention
+from evaluation.contention import SCHEDULES, Hogs, under_contention
 from tracelab.collect.recording import record
 from tracelab.collect.timeline import perfetto
 from tracelab.core.canon import sha256_hex
@@ -151,6 +151,9 @@ METRICS = {
         {"name": "iteration_latency", "unit": "ns", "direction": "lower_is_better"},
         {"name": "matmul_throughput", "unit": "ops_per_s", "direction": "higher_is_better"},
         {"name": "gpu_memory", "unit": "bytes", "direction": "lower_is_better"},
+        # Device state, carried for the environment check rather than judged.
+        {"name": "gpu_sm_clock", "unit": "unitless", "direction": "higher_is_better"},
+        {"name": "gpu_temperature", "unit": "celsius", "direction": "lower_is_better"},
     ],
 }
 SHAPE = {
@@ -319,8 +322,9 @@ def main() -> None:
     parser.add_argument("--store", type=Path, default=STORE)
     parser.add_argument(
         "--contention",
-        action="store_true",
-        help="start and stop CPU contention on the schedule in evaluation/contention.py",
+        choices=sorted(SCHEDULES),
+        default=None,
+        help="start and stop CPU contention on a schedule from evaluation/contention.py",
     )
     parser.add_argument(
         "--benchmarks",
@@ -348,7 +352,7 @@ def main() -> None:
     try:
         for index in range(args.runs):
             if args.contention:
-                _switch(hogs, under_contention(index), index, log)
+                _switch(hogs, under_contention(index, SCHEDULES[args.contention]), index, log)
             # Interleaved, so slow drift in the machine lands in both corpora alike.
             for benchmark in args.benchmarks:
                 traced = args.trace_every > 0 and index % args.trace_every == 0

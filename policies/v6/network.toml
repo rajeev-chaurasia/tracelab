@@ -1,0 +1,36 @@
+# Written before the v6 corpus was collected, and not tuned against it. The v4
+# policy plus a canary: membw runs interleaved with network, its code untouched
+# by any candidate, so if membw regressed past 3% while a network candidate
+# ran, the machine moved and the candidate's regression is inconclusive.
+benchmark = "network"
+baseline_window = 20
+min_baseline_runs = 5
+min_candidate_runs = 3
+confidence = 0.95
+n_boot = 2000
+max_baseline_noise = 0.05
+confirm_regressions = true
+
+[[metrics]]
+metric = "network_throughput"
+statistic = "median"
+threshold = 0.03
+role = "critical"
+
+[[metrics]]
+metric = "iteration_latency"
+statistic = "p95"
+threshold = 0.05
+role = "critical"
+
+[[metrics]]
+metric = "cpu_time"
+statistic = "median"
+threshold = 0.05
+role = "guardrail"
+
+[canary]
+benchmark = "membw"
+metric = "memory_bandwidth"
+statistic = "median"
+threshold = 0.03

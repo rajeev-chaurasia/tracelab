@@ -105,3 +105,35 @@ def test_a_published_contention_failure_is_pinned_and_still_needs_its_control() 
     ]
     [error] = check_contention_claim(three, pinned=3)
     assert error.startswith("negative control fails")
+
+
+def test_each_long_burst_covers_both_batches_of_one_window_with_a_clean_baseline() -> None:
+    span = BASELINE_RUNS + 2 * CANDIDATE_RUNS + c.GAP
+    targeted = [
+        s
+        for s in range(0, c.LONG_RUNS - span + 1, STRIDE)
+        if c.exposure(s, schedule=c.LONG_SCHEDULE) is c.Exposure.LONG_BOTH_BATCHES
+    ]
+
+    assert targeted == c.LONG_TARGETS
+    for start in targeted:
+        assert not any(
+            c.under_contention(i, c.LONG_SCHEDULE) for i in range(start, start + BASELINE_RUNS)
+        )
+
+
+def test_the_v6_claim_is_checked_on_long_bursts_against_the_engine_without_its_checks() -> None:
+    target, control = "long_burst_both_batches", "tracelab_no_environment"
+    rows = [
+        {**row("tracelab", target, "INCONCLUSIVE")},
+        {**row(control, target, "REGRESSION")},
+    ]
+
+    assert check_contention_claim(rows, None, target, control) == []
+    [error] = check_contention_claim(
+        [{**row("tracelab", target, "PASS")}, {**row(control, target, "PASS")}],
+        None,
+        target,
+        control,
+    )
+    assert error.startswith("negative control fails: tracelab_no_environment")

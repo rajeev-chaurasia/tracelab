@@ -131,7 +131,7 @@ def _decide_share(
             policies[case.kind.benchmark],
             version.exposure(case.start) if version.exposure else None,
         )
-        for position, case in enumerate(cases(corpus, version.confirmation_gap))
+        for position, case in enumerate(cases(corpus, version.confirmation_gap, version.canaries))
         if position % shares == share
         for comparator in comparators
     ]

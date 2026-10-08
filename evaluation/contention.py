@@ -58,8 +58,26 @@ SCHEDULE = [
 ]
 
 
-def under_contention(index: int) -> bool:
-    return any(b.covers(index) for b in SCHEDULE)
+# v6: long bursts only, each covering one window's first batch, the gap and its
+# confirmation batch, with that window's baseline clean. Confirmation cannot
+# see through these by design; the canary rule is what they test.
+LONG_EVERY = 45
+LONG_TARGETS = [k * LONG_EVERY for k in range(5)]
+LONG_SCHEDULE = [
+    Burst(
+        "long",
+        start + BASELINE_RUNS,
+        start + BASELINE_RUNS + CANDIDATE_RUNS + GAP + CANDIDATE_RUNS,
+    )
+    for start in LONG_TARGETS
+]
+LONG_RUNS = LONG_TARGETS[-1] + BASELINE_RUNS + 2 * CANDIDATE_RUNS + GAP + 4
+
+SCHEDULES = {"short": SCHEDULE, "long": LONG_SCHEDULE}
+
+
+def under_contention(index: int, schedule: list[Burst] = SCHEDULE) -> bool:
+    return any(b.covers(index) for b in schedule)
 
 
 class Exposure(StrEnum):
@@ -74,18 +92,18 @@ class Exposure(StrEnum):
     PARTIAL = "partial"
 
 
-def exposure(start: int, gap: int = GAP) -> Exposure:
+def exposure(start: int, gap: int = GAP, schedule: list[Burst] = SCHEDULE) -> Exposure:
     baseline = range(start, start + BASELINE_RUNS)
     first = range(start + BASELINE_RUNS, start + BASELINE_RUNS + CANDIDATE_RUNS)
     second_at = first.stop + gap
     second = range(second_at, second_at + CANDIDATE_RUNS)
     hit = {
-        name: {b.kind for b in SCHEDULE for i in idx if b.covers(i)}
+        name: {b.kind for b in schedule for i in idx if b.covers(i)}
         for name, idx in (("baseline", baseline), ("first", first), ("second", second))
     }
-    first_all_short = all(any(b.kind == "short" and b.covers(i) for b in SCHEDULE) for i in first)
+    first_all_short = all(any(b.kind == "short" and b.covers(i) for b in schedule) for i in first)
     both_all_long = all(
-        any(b.kind == "long" and b.covers(i) for b in SCHEDULE) for i in [*first, *second]
+        any(b.kind == "long" and b.covers(i) for b in schedule) for i in [*first, *second]
     )
     if not any(hit.values()):
         return Exposure.CLEAN

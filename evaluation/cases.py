@@ -15,6 +15,7 @@ from dataclasses import dataclass, replace
 
 import numpy as np
 
+from tracelab.core.compare import Canary
 from tracelab.core.policy import Verdict
 from tracelab.core.run import Run
 
@@ -49,6 +50,9 @@ class Case:
     # A second batch of the same revision, taken from later in the corpus, or
     # None when the version being scored has no confirmation step.
     confirmation: list[Run] | None = None
+    # Another benchmark's runs at the same positions, untouched by the
+    # injected change, for a policy that checks a canary.
+    canary: Canary | None = None
 
 
 def _map(runs: list[Run], metric: str, fn: Callable[[np.ndarray], np.ndarray]) -> list[Run]:
@@ -258,7 +262,11 @@ KINDS += [
 ]
 
 
-def cases(corpus: dict[str, list[Run]], confirmation_gap: int | None = None) -> Iterator[Case]:
+def cases(
+    corpus: dict[str, list[Run]],
+    confirmation_gap: int | None = None,
+    canaries: dict[str, str] | None = None,
+) -> Iterator[Case]:
     """Every window of every kind.
 
     With a confirmation gap, the confirmation batch starts that many runs after
@@ -288,4 +296,19 @@ def cases(corpus: dict[str, list[Run]], confirmation_gap: int | None = None) -> 
             batch = [replace(r, revision=CANDIDATE_REVISION) for r in batch]
             baseline, batch = kind.transform(baseline, batch, rng)
             first, second = batch[: kind.candidates], batch[kind.candidates :]
-            yield Case(case_id, kind, start, baseline, first, second or None)
+            canary = None
+            partner = (canaries or {}).get(kind.benchmark)
+            if partner is not None and confirmation_gap is not None:
+                # Collected interleaved, so position i of one benchmark ran
+                # next to position i of the other. The canary is never
+                # transformed: the injected change is in the candidate's code.
+                other = corpus[partner]
+                second_at = first_at + kind.candidates + confirmation_gap
+                canary = Canary(
+                    baseline=other[start : start + BASELINE_RUNS],
+                    during=[
+                        other[first_at : first_at + kind.candidates],
+                        other[second_at : second_at + kind.candidates],
+                    ],
+                )
+            yield Case(case_id, kind, start, baseline, first, second or None, canary)

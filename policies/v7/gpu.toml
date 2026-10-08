@@ -1,0 +1,36 @@
+# Written before the v7 corpus was collected on a freshly started L4, and not
+# tuned against it. The v5 policy plus one environment check: a candidate whose
+# median SM clock differs from the baseline's by more than 2% was measured on a
+# different device state. Two percent because v5's clock moved within 1.6% once
+# the GPU had settled, so a tighter limit would fire on a settled device, while
+# the warm-up drift v5 failed on was 4.5%.
+benchmark = "gpu"
+baseline_window = 20
+min_baseline_runs = 5
+min_candidate_runs = 3
+confidence = 0.95
+n_boot = 2000
+max_baseline_noise = 0.05
+confirm_regressions = true
+
+[[metrics]]
+metric = "matmul_throughput"
+statistic = "median"
+threshold = 0.03
+role = "critical"
+
+[[metrics]]
+metric = "iteration_latency"
+statistic = "p95"
+threshold = 0.05
+role = "critical"
+
+[[metrics]]
+metric = "gpu_memory"
+statistic = "median"
+threshold = 0.05
+role = "guardrail"
+
+[[environment]]
+metric = "gpu_sm_clock"
+limit = 0.02

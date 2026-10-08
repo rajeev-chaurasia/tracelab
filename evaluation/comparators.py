@@ -33,7 +33,19 @@ class Comparator:
 
 def _tracelab(case: Case, policy: BenchmarkPolicy, seed: int) -> Comparison:
     return compare(
-        case.candidates, Selection(case.baseline), policy, seed=seed, confirmation=case.confirmation
+        case.candidates,
+        Selection(case.baseline),
+        policy,
+        seed=seed,
+        confirmation=case.confirmation,
+        canary=case.canary,
+    )
+
+
+def _no_environment(case: Case, policy: BenchmarkPolicy, seed: int) -> Comparison:
+    bare = policy.model_copy(update={"canary": None, "environment": []})
+    return compare(
+        case.candidates, Selection(case.baseline), bare, seed=seed, confirmation=case.confirmation
     )
 
 
@@ -102,6 +114,12 @@ ONE_BATCH = Comparator(
     "tracelab_one_batch",
     "TraceLab with confirmation turned off, to show what confirmation is worth",
     _one_batch,
+)
+
+NO_ENVIRONMENT = Comparator(
+    "tracelab_no_environment",
+    "TraceLab with confirmation but without the canary and environment checks",
+    _no_environment,
 )
 
 BASELINES = [

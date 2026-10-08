@@ -175,8 +175,14 @@ def gpu() -> None:
     second from 2 * n^3 per multiply, the conventional count, so changes in it
     are meaningful and its absolute value is comparable to a datasheet.
     """
+    import pynvml
     import torch
 
+    # The device reports its own state each iteration, so a run carries the
+    # clock and temperature it was measured at, and a verdict can be checked
+    # against them: v5's only false regressions came while the GPU warmed.
+    pynvml.nvmlInit()
+    handle = pynvml.nvmlDeviceGetHandleByIndex(torch.cuda.current_device())
     n, count = GPU["size"], GPU["matmuls"]
     a = torch.randn(n, n, device="cuda", dtype=torch.float16)
     b = torch.randn(n, n, device="cuda", dtype=torch.float16)
@@ -195,6 +201,10 @@ def gpu() -> None:
         _emit("iteration_latency", i, warmup, elapsed_ns, "ns", t0)
         _emit("matmul_throughput", i, warmup, flops / (elapsed_ns / 1e9), "ops_per_s", t0)
         _emit("gpu_memory", i, warmup, float(torch.cuda.max_memory_allocated()), "bytes", t0)
+        clock = pynvml.nvmlDeviceGetClockInfo(handle, pynvml.NVML_CLOCK_SM)
+        temperature = pynvml.nvmlDeviceGetTemperature(handle, pynvml.NVML_TEMPERATURE_GPU)
+        _emit("gpu_sm_clock", i, warmup, float(clock), "unitless", t0)
+        _emit("gpu_temperature", i, warmup, float(temperature), "celsius", t0)
 
 
 WORKLOADS = {
