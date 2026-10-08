@@ -1,0 +1,126 @@
+{
+  "attempt": 1,
+  "environment": {
+    "binary_sha256": "3f3e5d167843bee706cb528a70ac0dd26a74e803ffa120d7f7f7c93f7844777f",
+    "config_sha256": null,
+    "git_revision": "cd78ed43ce6c0dd660ce377de173da864d8328b3",
+    "governor": "unmanaged",
+    "preflight_after": {
+      "cpu_util": null,
+      "gpu_util": null,
+      "load1": 10.5126953125,
+      "mem_free": null,
+      "temp_c": null
+    },
+    "preflight_before": {
+      "cpu_util": null,
+      "gpu_util": null,
+      "load1": 10.5126953125,
+      "mem_free": null,
+      "temp_c": null
+    }
+  },
+  "fence": 0,
+  "rig": {
+    "arch": "arm64",
+    "cpu_cores": 10,
+    "cpu_model": "Apple M4",
+    "driver_version": "",
+    "emulated": false,
+    "firmware": "",
+    "gpu_memory_bytes": 0,
+    "gpu_model": "",
+    "gpu_vendor": "",
+    "hardware_class": "laptop-arm64",
+    "kernel": "25.5.0",
+    "mem_bytes": 17179869184,
+    "os": "darwin",
+    "rig_id": "dev-laptop"
+  },
+  "run_id": "corpus-network-0169",
+  "schema_version": "benchgrid.run/v1",
+  "spec": {
+    "artifacts": {
+      "binary_sha256": "3f3e5d167843bee706cb528a70ac0dd26a74e803ffa120d7f7f7c93f7844777f"
+    },
+    "benchmark": "network",
+    "command": [
+      "python",
+      "-m",
+      "evaluation.workload",
+      "network"
+    ],
+    "environment": {},
+    "metrics": [
+      {
+        "direction": "lower_is_better",
+        "name": "iteration_latency",
+        "unit": "ns"
+      },
+      {
+        "direction": "higher_is_better",
+        "name": "network_throughput",
+        "unit": "ops_per_s"
+      },
+      {
+        "direction": "lower_is_better",
+        "name": "cpu_time",
+        "unit": "ns"
+      }
+    ],
+    "repetitions": 30,
+    "requirements": {
+      "arch": "arm64",
+      "hardware_class": "laptop-arm64"
+    },
+    "revision": "cd78ed43ce6c0dd660ce377de173da864d8328b3",
+    "timeout_seconds": 60,
+    "warmups": 3
+  },
+  "spec_sha256": "d856c1fc8eade57f04aa23fcc03172133adf968162fef2f622a7a0d845ec68da",
+  "status": "SUCCEEDED",
+  "status_reason": "",
+  "summary": {
+    "cpu_time": {
+      "cv": 0.2541880136262513,
+      "mad": 1070500.0,
+      "mean": 6254566.666666667,
+      "median": 6903500.0,
+      "n": 30,
+      "p90": 7822800.0,
+      "p95": 8166200.0,
+      "p99": 8776860.0,
+      "stddev": 1589835.877092964,
+      "unit": "ns"
+    },
+    "iteration_latency": {
+      "cv": 0.3666118110724485,
+      "mad": 1333521.0,
+      "mean": 3608031.966666667,
+      "median": 3801187.5,
+      "n": 30,
+      "p90": 5265120.9,
+      "p95": 5498654.100000001,
+      "p99": 6351744.210000001,
+      "stddev": 1322747.1337069548,
+      "unit": "ns"
+    },
+    "network_throughput": {
+      "cv": 0.3742700196140424,
+      "mad": 2501060744.940404,
+      "mean": 10646380072.657928,
+      "median": 8827360407.398281,
+      "n": 30,
+      "p90": 15199190306.951424,
+      "p95": 16231081769.477173,
+      "p99": 19024184726.70253,
+      "stddev": 3984620878.6122327,
+      "unit": "ops_per_s"
+    }
+  },
+  "timing": {
+    "finished": "2026-10-08T04:24:40.842039000Z",
+    "lease_acquired": "2026-10-08T04:24:40.643261000Z",
+    "started": "2026-10-08T04:24:40.643261000Z"
+  }
+}

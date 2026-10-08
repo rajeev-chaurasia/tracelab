@@ -1,0 +1,160 @@
+{
+  "attempt": 1,
+  "environment": {
+    "binary_sha256": "3f3e5d167843bee706cb528a70ac0dd26a74e803ffa120d7f7f7c93f7844777f",
+    "config_sha256": null,
+    "git_revision": "cd78ed43ce6c0dd660ce377de173da864d8328b3",
+    "governor": "unmanaged",
+    "preflight_after": {
+      "cpu_util": null,
+      "gpu_util": null,
+      "load1": 1.2841796875,
+      "mem_free": null,
+      "temp_c": null
+    },
+    "preflight_before": {
+      "cpu_util": null,
+      "gpu_util": null,
+      "load1": 1.30908203125,
+      "mem_free": null,
+      "temp_c": null
+    }
+  },
+  "fence": 0,
+  "rig": {
+    "arch": "x86_64",
+    "cpu_cores": 4,
+    "cpu_model": "Intel(R) Xeon(R) CPU @ 2.20GHz",
+    "driver_version": "580.178.04",
+    "emulated": false,
+    "firmware": "",
+    "gpu_memory_bytes": 24152899584,
+    "gpu_model": "NVIDIA L4",
+    "gpu_vendor": "nvidia",
+    "hardware_class": "gcp-g2-standard-4-l4",
+    "kernel": "6.8.0-1069-gcp",
+    "mem_bytes": 16767152128,
+    "os": "linux",
+    "rig_id": "tracelab-gpu-2"
+  },
+  "run_id": "corpus-gpu-0108",
+  "schema_version": "benchgrid.run/v1",
+  "spec": {
+    "artifacts": {
+      "binary_sha256": "3f3e5d167843bee706cb528a70ac0dd26a74e803ffa120d7f7f7c93f7844777f"
+    },
+    "benchmark": "gpu",
+    "command": [
+      "python",
+      "-m",
+      "evaluation.workload",
+      "gpu"
+    ],
+    "environment": {},
+    "metrics": [
+      {
+        "direction": "lower_is_better",
+        "name": "iteration_latency",
+        "unit": "ns"
+      },
+      {
+        "direction": "higher_is_better",
+        "name": "matmul_throughput",
+        "unit": "ops_per_s"
+      },
+      {
+        "direction": "lower_is_better",
+        "name": "gpu_memory",
+        "unit": "bytes"
+      },
+      {
+        "direction": "higher_is_better",
+        "name": "gpu_sm_clock",
+        "unit": "unitless"
+      },
+      {
+        "direction": "lower_is_better",
+        "name": "gpu_temperature",
+        "unit": "celsius"
+      }
+    ],
+    "repetitions": 50,
+    "requirements": {
+      "arch": "x86_64",
+      "hardware_class": "gcp-g2-standard-4-l4"
+    },
+    "revision": "cd78ed43ce6c0dd660ce377de173da864d8328b3",
+    "timeout_seconds": 60,
+    "warmups": 5
+  },
+  "spec_sha256": "3dc97c0e84e69a491efc957b12ffdcd21efda0a1c1c5652755e458bb8066197f",
+  "status": "SUCCEEDED",
+  "status_reason": "",
+  "summary": {
+    "gpu_memory": {
+      "cv": 0.0,
+      "mad": 0.0,
+      "mean": 109182976.0,
+      "median": 109182976.0,
+      "n": 50,
+      "p90": 109182976.0,
+      "p95": 109182976.0,
+      "p99": 109182976.0,
+      "stddev": 0.0,
+      "unit": "bytes"
+    },
+    "gpu_sm_clock": {
+      "cv": 0.04832046688968917,
+      "mad": 15.0,
+      "mean": 856.8,
+      "median": 885.0,
+      "n": 50,
+      "p90": 900.0,
+      "p95": 900.0,
+      "p99": 900.0,
+      "stddev": 41.400976031085676,
+      "unit": "unitless"
+    },
+    "gpu_temperature": {
+      "cv": 0.004697210044508125,
+      "mad": 0.0,
+      "mean": 78.84,
+      "median": 79.0,
+      "n": 50,
+      "p90": 79.0,
+      "p95": 79.0,
+      "p99": 79.0,
+      "stddev": 0.3703280399090206,
+      "unit": "celsius"
+    },
+    "iteration_latency": {
+      "cv": 0.04086332631709285,
+      "mad": 343039.51263427734,
+      "mean": 28954152.908325195,
+      "median": 28124671.936035156,
+      "n": 50,
+      "p90": 30568651.962280273,
+      "p95": 30578790.09246826,
+      "p99": 30594672.298431396,
+      "stddev": 1183162.9985278954,
+      "unit": "ns"
+    },
+    "matmul_throughput": {
+      "cv": 0.04010845158816942,
+      "mad": 603409509767.082,
+      "mean": 47544142289798.5,
+      "median": 48867753620098.11,
+      "n": 50,
+      "p90": 49385253004621.84,
+      "p95": 49493689125031.87,
+      "p99": 49632914087682.4,
+      "stddev": 1906921929331.4216,
+      "unit": "ops_per_s"
+    }
+  },
+  "timing": {
+    "finished": "2026-10-08T04:28:56.565456096Z",
+    "lease_acquired": "2026-10-08T04:28:52.516373043Z",
+    "started": "2026-10-08T04:28:52.516373043Z"
+  }
+}

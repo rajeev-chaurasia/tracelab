@@ -1,0 +1,299 @@
+{
+  "comparators": {
+    "fixed_5pct_previous_run": {
+      "by_kind": {
+        "gpu/faster_10%": {
+          "IMPROVEMENT": 26
+        },
+        "gpu/gpu_memory_+10%": {
+          "WARNING": 26
+        },
+        "gpu/latency_tail_x1.5": {
+          "REGRESSION": 26
+        },
+        "gpu/noisy_baseline_same_code": {
+          "IMPROVEMENT": 6,
+          "PASS": 14,
+          "REGRESSION": 6
+        },
+        "gpu/same_code": {
+          "PASS": 26
+        },
+        "gpu/slower_10%": {
+          "REGRESSION": 26
+        },
+        "gpu/slower_2%": {
+          "PASS": 26
+        },
+        "gpu/slower_20%": {
+          "REGRESSION": 26
+        },
+        "gpu/slower_5%": {
+          "PASS": 5,
+          "REGRESSION": 21
+        }
+      },
+      "cases": 234,
+      "correct": 217,
+      "false_improvements": 6,
+      "false_regressions": 6,
+      "regressions_caught": 99,
+      "regressions_inconclusive": 0,
+      "regressions_to_catch": 104,
+      "same_code_cases": 26,
+      "same_code_false_regressions": 0
+    },
+    "fixed_5pct_window": {
+      "by_kind": {
+        "gpu/faster_10%": {
+          "IMPROVEMENT": 26
+        },
+        "gpu/gpu_memory_+10%": {
+          "WARNING": 26
+        },
+        "gpu/latency_tail_x1.5": {
+          "REGRESSION": 26
+        },
+        "gpu/noisy_baseline_same_code": {
+          "IMPROVEMENT": 1,
+          "PASS": 25
+        },
+        "gpu/same_code": {
+          "PASS": 26
+        },
+        "gpu/slower_10%": {
+          "REGRESSION": 26
+        },
+        "gpu/slower_2%": {
+          "PASS": 26
+        },
+        "gpu/slower_20%": {
+          "REGRESSION": 26
+        },
+        "gpu/slower_5%": {
+          "PASS": 6,
+          "REGRESSION": 20
+        }
+      },
+      "cases": 234,
+      "correct": 227,
+      "false_improvements": 1,
+      "false_regressions": 0,
+      "regressions_caught": 98,
+      "regressions_inconclusive": 0,
+      "regressions_to_catch": 104,
+      "same_code_cases": 26,
+      "same_code_false_regressions": 0
+    },
+    "pooled_bootstrap": {
+      "by_kind": {
+        "gpu/faster_10%": {
+          "IMPROVEMENT": 26
+        },
+        "gpu/gpu_memory_+10%": {
+          "WARNING": 26
+        },
+        "gpu/latency_tail_x1.5": {
+          "INCONCLUSIVE": 1,
+          "REGRESSION": 25
+        },
+        "gpu/noisy_baseline_same_code": {
+          "INCONCLUSIVE": 25,
+          "PASS": 1
+        },
+        "gpu/same_code": {
+          "INCONCLUSIVE": 1,
+          "PASS": 23,
+          "WARNING": 2
+        },
+        "gpu/slower_10%": {
+          "INCONCLUSIVE": 1,
+          "REGRESSION": 25
+        },
+        "gpu/slower_2%": {
+          "INCONCLUSIVE": 1,
+          "PASS": 8,
+          "REGRESSION": 5,
+          "WARNING": 12
+        },
+        "gpu/slower_20%": {
+          "INCONCLUSIVE": 1,
+          "REGRESSION": 25
+        },
+        "gpu/slower_5%": {
+          "INCONCLUSIVE": 1,
+          "REGRESSION": 25
+        }
+      },
+      "cases": 234,
+      "correct": 221,
+      "false_improvements": 0,
+      "false_regressions": 5,
+      "regressions_caught": 100,
+      "regressions_inconclusive": 4,
+      "regressions_to_catch": 104,
+      "same_code_cases": 26,
+      "same_code_false_regressions": 0
+    },
+    "tracelab": {
+      "by_kind": {
+        "gpu/faster_10%": {
+          "IMPROVEMENT": 26
+        },
+        "gpu/gpu_memory_+10%": {
+          "INCONCLUSIVE": 1,
+          "WARNING": 25
+        },
+        "gpu/latency_tail_x1.5": {
+          "INCONCLUSIVE": 6,
+          "REGRESSION": 20
+        },
+        "gpu/noisy_baseline_same_code": {
+          "INCONCLUSIVE": 26
+        },
+        "gpu/same_code": {
+          "INCONCLUSIVE": 1,
+          "PASS": 21,
+          "WARNING": 4
+        },
+        "gpu/slower_10%": {
+          "INCONCLUSIVE": 5,
+          "REGRESSION": 21
+        },
+        "gpu/slower_2%": {
+          "INCONCLUSIVE": 4,
+          "PASS": 5,
+          "REGRESSION": 2,
+          "WARNING": 15
+        },
+        "gpu/slower_20%": {
+          "INCONCLUSIVE": 5,
+          "REGRESSION": 21
+        },
+        "gpu/slower_5%": {
+          "INCONCLUSIVE": 5,
+          "REGRESSION": 21
+        }
+      },
+      "cases": 234,
+      "correct": 201,
+      "false_improvements": 0,
+      "false_regressions": 2,
+      "regressions_caught": 83,
+      "regressions_inconclusive": 21,
+      "regressions_to_catch": 104,
+      "same_code_cases": 26,
+      "same_code_false_regressions": 0
+    },
+    "tracelab_no_environment": {
+      "by_kind": {
+        "gpu/faster_10%": {
+          "IMPROVEMENT": 26
+        },
+        "gpu/gpu_memory_+10%": {
+          "INCONCLUSIVE": 1,
+          "WARNING": 25
+        },
+        "gpu/latency_tail_x1.5": {
+          "INCONCLUSIVE": 1,
+          "REGRESSION": 25
+        },
+        "gpu/noisy_baseline_same_code": {
+          "INCONCLUSIVE": 26
+        },
+        "gpu/same_code": {
+          "INCONCLUSIVE": 1,
+          "PASS": 21,
+          "WARNING": 4
+        },
+        "gpu/slower_10%": {
+          "REGRESSION": 26
+        },
+        "gpu/slower_2%": {
+          "INCONCLUSIVE": 2,
+          "PASS": 5,
+          "REGRESSION": 4,
+          "WARNING": 15
+        },
+        "gpu/slower_20%": {
+          "REGRESSION": 26
+        },
+        "gpu/slower_5%": {
+          "REGRESSION": 26
+        }
+      },
+      "cases": 234,
+      "correct": 221,
+      "false_improvements": 0,
+      "false_regressions": 4,
+      "regressions_caught": 103,
+      "regressions_inconclusive": 1,
+      "regressions_to_catch": 104,
+      "same_code_cases": 26,
+      "same_code_false_regressions": 0
+    },
+    "tracelab_one_batch": {
+      "by_kind": {
+        "gpu/faster_10%": {
+          "IMPROVEMENT": 26
+        },
+        "gpu/gpu_memory_+10%": {
+          "INCONCLUSIVE": 1,
+          "WARNING": 25
+        },
+        "gpu/latency_tail_x1.5": {
+          "INCONCLUSIVE": 2,
+          "REGRESSION": 24
+        },
+        "gpu/noisy_baseline_same_code": {
+          "INCONCLUSIVE": 26
+        },
+        "gpu/same_code": {
+          "INCONCLUSIVE": 1,
+          "PASS": 21,
+          "WARNING": 4
+        },
+        "gpu/slower_10%": {
+          "INCONCLUSIVE": 1,
+          "REGRESSION": 25
+        },
+        "gpu/slower_2%": {
+          "INCONCLUSIVE": 1,
+          "PASS": 5,
+          "REGRESSION": 5,
+          "WARNING": 15
+        },
+        "gpu/slower_20%": {
+          "INCONCLUSIVE": 1,
+          "REGRESSION": 25
+        },
+        "gpu/slower_5%": {
+          "INCONCLUSIVE": 1,
+          "REGRESSION": 25
+        }
+      },
+      "cases": 234,
+      "correct": 217,
+      "false_improvements": 0,
+      "false_regressions": 5,
+      "regressions_caught": 99,
+      "regressions_inconclusive": 5,
+      "regressions_to_catch": 104,
+      "same_code_cases": 26,
+      "same_code_false_regressions": 0
+    }
+  },
+  "corpus": {
+    "gpu": {
+      "between_run_noise_of_median": 0.011343073822062818,
+      "first_started": "2026-10-08T04:21:31.799754+00:00",
+      "last_started": "2026-10-08T04:29:36.728060+00:00",
+      "median_within_run_cv": 0.039252822334860174,
+      "metric": "matmul_throughput",
+      "runs": 120,
+      "samples_per_run": [
+        50
+      ]
+    }
+  }
+}

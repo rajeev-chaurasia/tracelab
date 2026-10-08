@@ -1,0 +1,126 @@
+{
+  "attempt": 1,
+  "environment": {
+    "binary_sha256": "3f3e5d167843bee706cb528a70ac0dd26a74e803ffa120d7f7f7c93f7844777f",
+    "config_sha256": null,
+    "git_revision": "cd78ed43ce6c0dd660ce377de173da864d8328b3",
+    "governor": "unmanaged",
+    "preflight_after": {
+      "cpu_util": null,
+      "gpu_util": null,
+      "load1": 10.8369140625,
+      "mem_free": null,
+      "temp_c": null
+    },
+    "preflight_before": {
+      "cpu_util": null,
+      "gpu_util": null,
+      "load1": 10.8369140625,
+      "mem_free": null,
+      "temp_c": null
+    }
+  },
+  "fence": 0,
+  "rig": {
+    "arch": "arm64",
+    "cpu_cores": 10,
+    "cpu_model": "Apple M4",
+    "driver_version": "",
+    "emulated": false,
+    "firmware": "",
+    "gpu_memory_bytes": 0,
+    "gpu_model": "",
+    "gpu_vendor": "",
+    "hardware_class": "laptop-arm64",
+    "kernel": "25.5.0",
+    "mem_bytes": 17179869184,
+    "os": "darwin",
+    "rig_id": "dev-laptop"
+  },
+  "run_id": "corpus-membw-0184",
+  "schema_version": "benchgrid.run/v1",
+  "spec": {
+    "artifacts": {
+      "binary_sha256": "3f3e5d167843bee706cb528a70ac0dd26a74e803ffa120d7f7f7c93f7844777f"
+    },
+    "benchmark": "membw",
+    "command": [
+      "python",
+      "-m",
+      "evaluation.workload",
+      "membw"
+    ],
+    "environment": {},
+    "metrics": [
+      {
+        "direction": "lower_is_better",
+        "name": "iteration_latency",
+        "unit": "ns"
+      },
+      {
+        "direction": "higher_is_better",
+        "name": "memory_bandwidth",
+        "unit": "ops_per_s"
+      },
+      {
+        "direction": "lower_is_better",
+        "name": "cpu_time",
+        "unit": "ns"
+      }
+    ],
+    "repetitions": 30,
+    "requirements": {
+      "arch": "arm64",
+      "hardware_class": "laptop-arm64"
+    },
+    "revision": "cd78ed43ce6c0dd660ce377de173da864d8328b3",
+    "timeout_seconds": 60,
+    "warmups": 3
+  },
+  "spec_sha256": "efef5f0bdeaea82c6e55382b0a7ce2f02a4d917281d333697647c36633d76d47",
+  "status": "SUCCEEDED",
+  "status_reason": "",
+  "summary": {
+    "cpu_time": {
+      "cv": 0.07507469137113734,
+      "mad": 83500.0,
+      "mean": 3753333.3333333335,
+      "median": 3693500.0,
+      "n": 30,
+      "p90": 3977500.0,
+      "p95": 4376000.0,
+      "p99": 4722890.0,
+      "stddev": 281780.3416130022,
+      "unit": "ns"
+    },
+    "iteration_latency": {
+      "cv": 0.07591863450690124,
+      "mad": 78312.5,
+      "mean": 3743465.3333333335,
+      "median": 3682625.0,
+      "n": 30,
+      "p90": 3980524.7,
+      "p95": 4381739.95,
+      "p99": 4713856.86,
+      "stddev": 284198.77643058856,
+      "unit": "ns"
+    },
+    "memory_bandwidth": {
+      "cv": 0.06437096301558039,
+      "mad": 1844984898.8795853,
+      "mean": 85886609648.85861,
+      "median": 86895706295.12672,
+      "n": 30,
+      "p90": 89907664826.67488,
+      "p95": 90432673879.05444,
+      "p99": 90895372840.5098,
+      "stddev": 5528603773.240267,
+      "unit": "ops_per_s"
+    }
+  },
+  "timing": {
+    "finished": "2026-10-08T04:24:47.001376000Z",
+    "lease_acquired": "2026-10-08T04:24:46.805157000Z",
+    "started": "2026-10-08T04:24:46.805157000Z"
+  }
+}

@@ -1,0 +1,636 @@
+{
+  "comparators": {
+    "fixed_5pct_previous_run": {
+      "by_exposure": {
+        "long_burst_both_batches": {
+          "cases": 90,
+          "false_regressions": 50,
+          "regressions_caught": 40,
+          "regressions_to_catch": 40
+        },
+        "partial": {
+          "cases": 1026,
+          "false_regressions": 232,
+          "regressions_caught": 377,
+          "regressions_to_catch": 456
+        }
+      },
+      "by_kind": {
+        "membw/cpu_time_+10%": {
+          "IMPROVEMENT": 5,
+          "REGRESSION": 24,
+          "WARNING": 33
+        },
+        "membw/faster_10%": {
+          "IMPROVEMENT": 44,
+          "REGRESSION": 17,
+          "WARNING": 1
+        },
+        "membw/latency_tail_x1.5": {
+          "IMPROVEMENT": 2,
+          "PASS": 1,
+          "REGRESSION": 59
+        },
+        "membw/noisy_baseline_same_code": {
+          "IMPROVEMENT": 19,
+          "PASS": 8,
+          "REGRESSION": 35
+        },
+        "membw/same_code": {
+          "IMPROVEMENT": 21,
+          "PASS": 17,
+          "REGRESSION": 24
+        },
+        "membw/slower_10%": {
+          "IMPROVEMENT": 2,
+          "PASS": 2,
+          "REGRESSION": 58
+        },
+        "membw/slower_2%": {
+          "IMPROVEMENT": 18,
+          "PASS": 17,
+          "REGRESSION": 27
+        },
+        "membw/slower_20%": {
+          "REGRESSION": 62
+        },
+        "membw/slower_5%": {
+          "IMPROVEMENT": 14,
+          "PASS": 8,
+          "REGRESSION": 40
+        },
+        "network/cpu_time_+10%": {
+          "IMPROVEMENT": 17,
+          "REGRESSION": 33,
+          "WARNING": 12
+        },
+        "network/faster_10%": {
+          "IMPROVEMENT": 39,
+          "REGRESSION": 20,
+          "WARNING": 3
+        },
+        "network/latency_tail_x1.5": {
+          "IMPROVEMENT": 4,
+          "REGRESSION": 58
+        },
+        "network/noisy_baseline_same_code": {
+          "IMPROVEMENT": 25,
+          "PASS": 2,
+          "REGRESSION": 35
+        },
+        "network/same_code": {
+          "IMPROVEMENT": 26,
+          "PASS": 3,
+          "REGRESSION": 33
+        },
+        "network/slower_10%": {
+          "IMPROVEMENT": 13,
+          "REGRESSION": 49
+        },
+        "network/slower_2%": {
+          "IMPROVEMENT": 26,
+          "PASS": 2,
+          "REGRESSION": 34
+        },
+        "network/slower_20%": {
+          "IMPROVEMENT": 8,
+          "REGRESSION": 54
+        },
+        "network/slower_5%": {
+          "IMPROVEMENT": 25,
+          "REGRESSION": 37
+        }
+      },
+      "cases": 1116,
+      "correct": 594,
+      "false_improvements": 225,
+      "false_regressions": 282,
+      "regressions_caught": 417,
+      "regressions_inconclusive": 0,
+      "regressions_to_catch": 496,
+      "same_code_cases": 124,
+      "same_code_false_regressions": 57
+    },
+    "fixed_5pct_window": {
+      "by_exposure": {
+        "long_burst_both_batches": {
+          "cases": 90,
+          "false_regressions": 50,
+          "regressions_caught": 40,
+          "regressions_to_catch": 40
+        },
+        "partial": {
+          "cases": 1026,
+          "false_regressions": 205,
+          "regressions_caught": 362,
+          "regressions_to_catch": 456
+        }
+      },
+      "by_kind": {
+        "membw/cpu_time_+10%": {
+          "IMPROVEMENT": 1,
+          "REGRESSION": 23,
+          "WARNING": 38
+        },
+        "membw/faster_10%": {
+          "IMPROVEMENT": 43,
+          "REGRESSION": 18,
+          "WARNING": 1
+        },
+        "membw/latency_tail_x1.5": {
+          "IMPROVEMENT": 17,
+          "PASS": 1,
+          "REGRESSION": 44
+        },
+        "membw/noisy_baseline_same_code": {
+          "IMPROVEMENT": 33,
+          "PASS": 6,
+          "REGRESSION": 23
+        },
+        "membw/same_code": {
+          "IMPROVEMENT": 33,
+          "PASS": 6,
+          "REGRESSION": 23
+        },
+        "membw/slower_10%": {
+          "IMPROVEMENT": 1,
+          "REGRESSION": 61
+        },
+        "membw/slower_2%": {
+          "IMPROVEMENT": 33,
+          "PASS": 6,
+          "REGRESSION": 23
+        },
+        "membw/slower_20%": {
+          "REGRESSION": 62
+        },
+        "membw/slower_5%": {
+          "IMPROVEMENT": 25,
+          "PASS": 3,
+          "REGRESSION": 34
+        },
+        "network/cpu_time_+10%": {
+          "IMPROVEMENT": 18,
+          "PASS": 1,
+          "REGRESSION": 29,
+          "WARNING": 14
+        },
+        "network/faster_10%": {
+          "IMPROVEMENT": 32,
+          "REGRESSION": 27,
+          "WARNING": 3
+        },
+        "network/latency_tail_x1.5": {
+          "IMPROVEMENT": 2,
+          "REGRESSION": 60
+        },
+        "network/noisy_baseline_same_code": {
+          "IMPROVEMENT": 26,
+          "PASS": 6,
+          "REGRESSION": 30
+        },
+        "network/same_code": {
+          "IMPROVEMENT": 24,
+          "PASS": 8,
+          "REGRESSION": 29,
+          "WARNING": 1
+        },
+        "network/slower_10%": {
+          "IMPROVEMENT": 14,
+          "REGRESSION": 48
+        },
+        "network/slower_2%": {
+          "IMPROVEMENT": 23,
+          "PASS": 9,
+          "REGRESSION": 30
+        },
+        "network/slower_20%": {
+          "IMPROVEMENT": 6,
+          "REGRESSION": 56
+        },
+        "network/slower_5%": {
+          "IMPROVEMENT": 20,
+          "PASS": 5,
+          "REGRESSION": 37
+        }
+      },
+      "cases": 1116,
+      "correct": 570,
+      "false_improvements": 276,
+      "false_regressions": 255,
+      "regressions_caught": 402,
+      "regressions_inconclusive": 0,
+      "regressions_to_catch": 496,
+      "same_code_cases": 124,
+      "same_code_false_regressions": 52
+    },
+    "pooled_bootstrap": {
+      "by_exposure": {
+        "long_burst_both_batches": {
+          "cases": 90,
+          "false_regressions": 31,
+          "regressions_caught": 37,
+          "regressions_to_catch": 40
+        },
+        "partial": {
+          "cases": 1026,
+          "false_regressions": 72,
+          "regressions_caught": 230,
+          "regressions_to_catch": 456
+        }
+      },
+      "by_kind": {
+        "membw/cpu_time_+10%": {
+          "INCONCLUSIVE": 52,
+          "REGRESSION": 10
+        },
+        "membw/faster_10%": {
+          "INCONCLUSIVE": 61,
+          "REGRESSION": 1
+        },
+        "membw/latency_tail_x1.5": {
+          "INCONCLUSIVE": 52,
+          "REGRESSION": 10
+        },
+        "membw/noisy_baseline_same_code": {
+          "INCONCLUSIVE": 61,
+          "REGRESSION": 1
+        },
+        "membw/same_code": {
+          "INCONCLUSIVE": 52,
+          "REGRESSION": 10
+        },
+        "membw/slower_10%": {
+          "REGRESSION": 62
+        },
+        "membw/slower_2%": {
+          "INCONCLUSIVE": 40,
+          "REGRESSION": 22
+        },
+        "membw/slower_20%": {
+          "REGRESSION": 62
+        },
+        "membw/slower_5%": {
+          "INCONCLUSIVE": 13,
+          "REGRESSION": 49
+        },
+        "network/cpu_time_+10%": {
+          "INCONCLUSIVE": 48,
+          "REGRESSION": 14
+        },
+        "network/faster_10%": {
+          "INCONCLUSIVE": 48,
+          "REGRESSION": 14
+        },
+        "network/latency_tail_x1.5": {
+          "INCONCLUSIVE": 48,
+          "REGRESSION": 14
+        },
+        "network/noisy_baseline_same_code": {
+          "INCONCLUSIVE": 59,
+          "REGRESSION": 3
+        },
+        "network/same_code": {
+          "INCONCLUSIVE": 48,
+          "REGRESSION": 14
+        },
+        "network/slower_10%": {
+          "INCONCLUSIVE": 38,
+          "REGRESSION": 24
+        },
+        "network/slower_2%": {
+          "INCONCLUSIVE": 48,
+          "REGRESSION": 14
+        },
+        "network/slower_20%": {
+          "INCONCLUSIVE": 37,
+          "REGRESSION": 25
+        },
+        "network/slower_5%": {
+          "INCONCLUSIVE": 41,
+          "REGRESSION": 21
+        }
+      },
+      "cases": 1116,
+      "correct": 387,
+      "false_improvements": 0,
+      "false_regressions": 103,
+      "regressions_caught": 267,
+      "regressions_inconclusive": 229,
+      "regressions_to_catch": 496,
+      "same_code_cases": 124,
+      "same_code_false_regressions": 24
+    },
+    "tracelab": {
+      "by_exposure": {
+        "long_burst_both_batches": {
+          "cases": 90,
+          "false_regressions": 9,
+          "regressions_caught": 8,
+          "regressions_to_catch": 40
+        },
+        "partial": {
+          "cases": 1026,
+          "false_regressions": 0,
+          "regressions_caught": 70,
+          "regressions_to_catch": 456
+        }
+      },
+      "by_kind": {
+        "membw/cpu_time_+10%": {
+          "INCONCLUSIVE": 62
+        },
+        "membw/faster_10%": {
+          "INCONCLUSIVE": 62
+        },
+        "membw/latency_tail_x1.5": {
+          "INCONCLUSIVE": 62
+        },
+        "membw/noisy_baseline_same_code": {
+          "INCONCLUSIVE": 62
+        },
+        "membw/same_code": {
+          "INCONCLUSIVE": 62
+        },
+        "membw/slower_10%": {
+          "INCONCLUSIVE": 37,
+          "REGRESSION": 25
+        },
+        "membw/slower_2%": {
+          "INCONCLUSIVE": 62
+        },
+        "membw/slower_20%": {
+          "INCONCLUSIVE": 37,
+          "REGRESSION": 25
+        },
+        "membw/slower_5%": {
+          "INCONCLUSIVE": 53,
+          "REGRESSION": 9
+        },
+        "network/cpu_time_+10%": {
+          "INCONCLUSIVE": 60,
+          "REGRESSION": 2
+        },
+        "network/faster_10%": {
+          "INCONCLUSIVE": 60,
+          "REGRESSION": 2
+        },
+        "network/latency_tail_x1.5": {
+          "INCONCLUSIVE": 60,
+          "REGRESSION": 2
+        },
+        "network/noisy_baseline_same_code": {
+          "INCONCLUSIVE": 61,
+          "REGRESSION": 1
+        },
+        "network/same_code": {
+          "INCONCLUSIVE": 60,
+          "REGRESSION": 2
+        },
+        "network/slower_10%": {
+          "INCONCLUSIVE": 56,
+          "REGRESSION": 6
+        },
+        "network/slower_2%": {
+          "INCONCLUSIVE": 60,
+          "REGRESSION": 2
+        },
+        "network/slower_20%": {
+          "INCONCLUSIVE": 55,
+          "REGRESSION": 7
+        },
+        "network/slower_5%": {
+          "INCONCLUSIVE": 58,
+          "REGRESSION": 4
+        }
+      },
+      "cases": 1116,
+      "correct": 201,
+      "false_improvements": 0,
+      "false_regressions": 9,
+      "regressions_caught": 78,
+      "regressions_inconclusive": 418,
+      "regressions_to_catch": 496,
+      "same_code_cases": 124,
+      "same_code_false_regressions": 2
+    },
+    "tracelab_no_environment": {
+      "by_exposure": {
+        "long_burst_both_batches": {
+          "cases": 90,
+          "false_regressions": 29,
+          "regressions_caught": 36,
+          "regressions_to_catch": 40
+        },
+        "partial": {
+          "cases": 1026,
+          "false_regressions": 6,
+          "regressions_caught": 174,
+          "regressions_to_catch": 456
+        }
+      },
+      "by_kind": {
+        "membw/cpu_time_+10%": {
+          "INCONCLUSIVE": 60,
+          "REGRESSION": 2
+        },
+        "membw/faster_10%": {
+          "INCONCLUSIVE": 61,
+          "REGRESSION": 1
+        },
+        "membw/latency_tail_x1.5": {
+          "INCONCLUSIVE": 60,
+          "REGRESSION": 2
+        },
+        "membw/noisy_baseline_same_code": {
+          "INCONCLUSIVE": 61,
+          "REGRESSION": 1
+        },
+        "membw/same_code": {
+          "INCONCLUSIVE": 60,
+          "REGRESSION": 2
+        },
+        "membw/slower_10%": {
+          "REGRESSION": 62
+        },
+        "membw/slower_2%": {
+          "INCONCLUSIVE": 55,
+          "REGRESSION": 7
+        },
+        "membw/slower_20%": {
+          "REGRESSION": 62
+        },
+        "membw/slower_5%": {
+          "INCONCLUSIVE": 25,
+          "REGRESSION": 37
+        },
+        "network/cpu_time_+10%": {
+          "INCONCLUSIVE": 57,
+          "REGRESSION": 5
+        },
+        "network/faster_10%": {
+          "INCONCLUSIVE": 57,
+          "REGRESSION": 5
+        },
+        "network/latency_tail_x1.5": {
+          "INCONCLUSIVE": 57,
+          "REGRESSION": 5
+        },
+        "network/noisy_baseline_same_code": {
+          "INCONCLUSIVE": 60,
+          "REGRESSION": 2
+        },
+        "network/same_code": {
+          "INCONCLUSIVE": 57,
+          "REGRESSION": 5
+        },
+        "network/slower_10%": {
+          "INCONCLUSIVE": 47,
+          "REGRESSION": 15
+        },
+        "network/slower_2%": {
+          "INCONCLUSIVE": 57,
+          "REGRESSION": 5
+        },
+        "network/slower_20%": {
+          "INCONCLUSIVE": 45,
+          "REGRESSION": 17
+        },
+        "network/slower_5%": {
+          "INCONCLUSIVE": 52,
+          "REGRESSION": 10
+        }
+      },
+      "cases": 1116,
+      "correct": 331,
+      "false_improvements": 0,
+      "false_regressions": 35,
+      "regressions_caught": 210,
+      "regressions_inconclusive": 286,
+      "regressions_to_catch": 496,
+      "same_code_cases": 124,
+      "same_code_false_regressions": 7
+    },
+    "tracelab_one_batch": {
+      "by_exposure": {
+        "long_burst_both_batches": {
+          "cases": 90,
+          "false_regressions": 31,
+          "regressions_caught": 37,
+          "regressions_to_catch": 40
+        },
+        "partial": {
+          "cases": 1026,
+          "false_regressions": 61,
+          "regressions_caught": 214,
+          "regressions_to_catch": 456
+        }
+      },
+      "by_kind": {
+        "membw/cpu_time_+10%": {
+          "INCONCLUSIVE": 55,
+          "REGRESSION": 7
+        },
+        "membw/faster_10%": {
+          "INCONCLUSIVE": 61,
+          "REGRESSION": 1
+        },
+        "membw/latency_tail_x1.5": {
+          "INCONCLUSIVE": 54,
+          "REGRESSION": 8
+        },
+        "membw/noisy_baseline_same_code": {
+          "INCONCLUSIVE": 61,
+          "REGRESSION": 1
+        },
+        "membw/same_code": {
+          "INCONCLUSIVE": 55,
+          "REGRESSION": 7
+        },
+        "membw/slower_10%": {
+          "REGRESSION": 62
+        },
+        "membw/slower_2%": {
+          "INCONCLUSIVE": 44,
+          "REGRESSION": 18
+        },
+        "membw/slower_20%": {
+          "REGRESSION": 62
+        },
+        "membw/slower_5%": {
+          "INCONCLUSIVE": 14,
+          "REGRESSION": 48
+        },
+        "network/cpu_time_+10%": {
+          "INCONCLUSIVE": 48,
+          "REGRESSION": 14
+        },
+        "network/faster_10%": {
+          "INCONCLUSIVE": 49,
+          "REGRESSION": 13
+        },
+        "network/latency_tail_x1.5": {
+          "INCONCLUSIVE": 48,
+          "REGRESSION": 14
+        },
+        "network/noisy_baseline_same_code": {
+          "INCONCLUSIVE": 59,
+          "REGRESSION": 3
+        },
+        "network/same_code": {
+          "INCONCLUSIVE": 48,
+          "REGRESSION": 14
+        },
+        "network/slower_10%": {
+          "INCONCLUSIVE": 43,
+          "REGRESSION": 19
+        },
+        "network/slower_2%": {
+          "INCONCLUSIVE": 48,
+          "REGRESSION": 14
+        },
+        "network/slower_20%": {
+          "INCONCLUSIVE": 41,
+          "REGRESSION": 21
+        },
+        "network/slower_5%": {
+          "INCONCLUSIVE": 45,
+          "REGRESSION": 17
+        }
+      },
+      "cases": 1116,
+      "correct": 371,
+      "false_improvements": 0,
+      "false_regressions": 92,
+      "regressions_caught": 251,
+      "regressions_inconclusive": 245,
+      "regressions_to_catch": 496,
+      "same_code_cases": 124,
+      "same_code_false_regressions": 21
+    }
+  },
+  "corpus": {
+    "membw": {
+      "between_run_noise_of_median": 0.027134182876774073,
+      "first_started": "2026-10-08T04:23:28.976809+00:00",
+      "last_started": "2026-10-08T04:25:04.875257+00:00",
+      "median_within_run_cv": 0.10868046237440672,
+      "metric": "memory_bandwidth",
+      "runs": 228,
+      "samples_per_run": [
+        30
+      ]
+    },
+    "network": {
+      "between_run_noise_of_median": 0.5613669233945066,
+      "first_started": "2026-10-08T04:23:29.233477+00:00",
+      "last_started": "2026-10-08T04:25:05.069850+00:00",
+      "median_within_run_cv": 0.26584172143166634,
+      "metric": "network_throughput",
+      "runs": 228,
+      "samples_per_run": [
+        30
+      ]
+    }
+  }
+}

@@ -119,7 +119,11 @@ VERSIONS = {
             out=Path("evidence/v6"),
             confirmation_gap=18,
             comparators=[TRACELAB, NO_ENVIRONMENT, ONE_BATCH, *BASELINES],
-            pinned_false_regressions=None,
+            # Published as a failure: nine false regressions on the targeted
+            # windows, every one a network candidate whose memory-bandwidth
+            # canary did not feel the CPU contention that halved network
+            # throughput. docs/evidence.md traces them.
+            pinned_false_regressions=9,
             exposure=lambda start: exposure(start, schedule=LONG_SCHEDULE).value,
             canaries={"membw": "network", "network": "membw"},
             claim_target="long_burst_both_batches",
@@ -132,7 +136,11 @@ VERSIONS = {
             out=Path("evidence/v7"),
             confirmation_gap=18,
             comparators=[TRACELAB, NO_ENVIRONMENT, ONE_BATCH, *BASELINES],
-            pinned_false_regressions=None,
+            # Published as a failure: two real 2% slowdowns called past 3%
+            # where the clock drifted 1.1 to 1.7%, inside the 2% limit, while
+            # throughput drifted with it. The check removed the warm-up
+            # windows' others; docs/evidence.md has both halves.
+            pinned_false_regressions=2,
             control="tracelab_no_environment",
         ),
     ]

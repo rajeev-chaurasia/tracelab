@@ -1,0 +1,160 @@
+{
+  "attempt": 1,
+  "environment": {
+    "binary_sha256": "3f3e5d167843bee706cb528a70ac0dd26a74e803ffa120d7f7f7c93f7844777f",
+    "config_sha256": null,
+    "git_revision": "cd78ed43ce6c0dd660ce377de173da864d8328b3",
+    "governor": "unmanaged",
+    "preflight_after": {
+      "cpu_util": null,
+      "gpu_util": null,
+      "load1": 0.90966796875,
+      "mem_free": null,
+      "temp_c": null
+    },
+    "preflight_before": {
+      "cpu_util": null,
+      "gpu_util": null,
+      "load1": 0.9013671875,
+      "mem_free": null,
+      "temp_c": null
+    }
+  },
+  "fence": 0,
+  "rig": {
+    "arch": "x86_64",
+    "cpu_cores": 4,
+    "cpu_model": "Intel(R) Xeon(R) CPU @ 2.20GHz",
+    "driver_version": "580.178.04",
+    "emulated": false,
+    "firmware": "",
+    "gpu_memory_bytes": 24152899584,
+    "gpu_model": "NVIDIA L4",
+    "gpu_vendor": "nvidia",
+    "hardware_class": "gcp-g2-standard-4-l4",
+    "kernel": "6.8.0-1069-gcp",
+    "mem_bytes": 16767152128,
+    "os": "linux",
+    "rig_id": "tracelab-gpu-2"
+  },
+  "run_id": "corpus-gpu-0023",
+  "schema_version": "benchgrid.run/v1",
+  "spec": {
+    "artifacts": {
+      "binary_sha256": "3f3e5d167843bee706cb528a70ac0dd26a74e803ffa120d7f7f7c93f7844777f"
+    },
+    "benchmark": "gpu",
+    "command": [
+      "python",
+      "-m",
+      "evaluation.workload",
+      "gpu"
+    ],
+    "environment": {},
+    "metrics": [
+      {
+        "direction": "lower_is_better",
+        "name": "iteration_latency",
+        "unit": "ns"
+      },
+      {
+        "direction": "higher_is_better",
+        "name": "matmul_throughput",
+        "unit": "ops_per_s"
+      },
+      {
+        "direction": "lower_is_better",
+        "name": "gpu_memory",
+        "unit": "bytes"
+      },
+      {
+        "direction": "higher_is_better",
+        "name": "gpu_sm_clock",
+        "unit": "unitless"
+      },
+      {
+        "direction": "lower_is_better",
+        "name": "gpu_temperature",
+        "unit": "celsius"
+      }
+    ],
+    "repetitions": 50,
+    "requirements": {
+      "arch": "x86_64",
+      "hardware_class": "gcp-g2-standard-4-l4"
+    },
+    "revision": "cd78ed43ce6c0dd660ce377de173da864d8328b3",
+    "timeout_seconds": 60,
+    "warmups": 5
+  },
+  "spec_sha256": "3dc97c0e84e69a491efc957b12ffdcd21efda0a1c1c5652755e458bb8066197f",
+  "status": "SUCCEEDED",
+  "status_reason": "",
+  "summary": {
+    "gpu_memory": {
+      "cv": 0.0,
+      "mad": 0.0,
+      "mean": 109182976.0,
+      "median": 109182976.0,
+      "n": 50,
+      "p90": 109182976.0,
+      "p95": 109182976.0,
+      "p99": 109182976.0,
+      "stddev": 0.0,
+      "unit": "bytes"
+    },
+    "gpu_sm_clock": {
+      "cv": 0.04708832216416456,
+      "mad": 15.0,
+      "mean": 864.9,
+      "median": 885.0,
+      "n": 50,
+      "p90": 900.0,
+      "p95": 908.25,
+      "p99": 915.0,
+      "stddev": 40.72668983978593,
+      "unit": "unitless"
+    },
+    "gpu_temperature": {
+      "cv": 0.008345977085840938,
+      "mad": 0.0,
+      "mean": 77.5,
+      "median": 78.0,
+      "n": 50,
+      "p90": 78.0,
+      "p95": 78.0,
+      "p99": 78.0,
+      "stddev": 0.6468132241526726,
+      "unit": "celsius"
+    },
+    "iteration_latency": {
+      "cv": 0.04380227870381181,
+      "mad": 288256.6452026367,
+      "mean": 28624076.84326172,
+      "median": 27924992.561340332,
+      "n": 50,
+      "p90": 30445875.358581543,
+      "p95": 30454989.24255371,
+      "p99": 30550333.728790283,
+      "stddev": 1253799.7915278755,
+      "unit": "ns"
+    },
+    "matmul_throughput": {
+      "cv": 0.04270804351844176,
+      "mad": 513208010080.97656,
+      "mean": 48103327993765.8,
+      "median": 49217322356837.78,
+      "n": 50,
+      "p90": 49730899007292.78,
+      "p95": 50134230922266.695,
+      "p99": 50541625520143.83,
+      "stddev": 2054399025339.6277,
+      "unit": "ops_per_s"
+    }
+  },
+  "timing": {
+    "finished": "2026-10-08T04:23:12.249033862Z",
+    "lease_acquired": "2026-10-08T04:23:08.234431522Z",
+    "started": "2026-10-08T04:23:08.234431522Z"
+  }
+}
