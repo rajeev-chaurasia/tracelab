@@ -41,8 +41,10 @@ engine's own noise function, value by value, and the command fails on any
 difference. On BigQuery all three rollups agree with the lake to within 1e-9,
 with no disagreements, and so do they on the emulator.
 
-`evidence/warehouse/` keeps what BigQuery returned and what it reported about
-itself: both tables partitioned by day on `started_at` and clustered as
+The dataset was deleted once the run was recorded, so nothing is left running
+or stored in the project; `tracelab warehouse bigquery --project <id>` rebuilds
+it from the lake in under a minute. `evidence/warehouse/` keeps what BigQuery
+returned and what it reported about itself: both tables partitioned by day on `started_at` and clustered as
 designed, and dry-run byte counts. At two days of data partitioning has little
 to prune. A filter inside the busier day scans more than no filter, because it
 reads the `started_at` column too, while a filter that excludes a day cuts the

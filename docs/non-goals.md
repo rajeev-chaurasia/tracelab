@@ -5,10 +5,11 @@ deliberately absent. The list is here so the absences read as decisions.
 
 ## No standing cloud deployment
 
-BigQuery has been used for real, in a GCP project's `tracelab` dataset, and a
-GPU VM was created for one evaluation and deleted after it. Nothing runs
-there continuously: no scheduled loads, no hosted Grafana, no GCS bucket.
-Corpora live in the repository and dashboards run on localhost.
+BigQuery has been used for real, in a GCP project's `tracelab` dataset, and
+two GPU VMs were created for the GPU evaluations. All of it was deleted once
+the results were recorded in `evidence/`. Nothing runs there continuously: no
+scheduled loads, no hosted Grafana, no GCS bucket. Corpora live in the
+repository and dashboards run on localhost.
 
 ## No sampling profiler
 
